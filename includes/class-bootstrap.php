@@ -20,24 +20,10 @@ final class Bootstrap {
 	 * @return void
 	 */
 	public static function init(): void {
-		add_action( 'plugins_loaded', array( self::class, 'load_textdomain' ) );
 		add_action( 'init', array( self::class, 'register_editor_block' ) );
 		add_action( 'wp_enqueue_scripts', array( self::class, 'enqueue_frontend_styles' ) );
 
 		Cover_Link::register();
-	}
-
-	/**
-	 * Load translations.
-	 *
-	 * @return void
-	 */
-	public static function load_textdomain(): void {
-		load_plugin_textdomain(
-			'4wp-smart-link',
-			false,
-			dirname( plugin_basename( FORWP_SMART_LINK_FILE ) ) . '/languages'
-		);
 	}
 
 	/**
