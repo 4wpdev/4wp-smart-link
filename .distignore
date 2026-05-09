@@ -1,0 +1,25 @@
+# Development-only paths — omit from WordPress.org releases / plugin ZIP (Plugin Check).
+.editorconfig
+.git/
+.gitattributes
+.gitignore
+.phpcs.xml
+.phpcs.xml.dist
+.phpcs.cache
+
+.distignore
+.eslintrc*
+.stylelint*
+
+composer.json
+composer.lock
+package.json
+package-lock.json
+webpack.config.js
+editor/
+
+vendor/
+node_modules/
+
+coverage/
+.phpunit.result.cache
