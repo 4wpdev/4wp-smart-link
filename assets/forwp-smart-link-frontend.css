@@ -1,0 +1,19 @@
+/**
+ * Frontend: Smart Link wrapper — baseline visuals & keyboard focus.
+ *
+ * Inline styles on the anchor reset theme link defaults; this file ensures
+ * focus-visible meets keyboard navigation expectations where themes strip outlines.
+ */
+
+.forwp-smart-link-wrapper {
+	box-sizing: border-box;
+}
+
+.forwp-smart-link-wrapper:focus {
+	outline: none;
+}
+
+.forwp-smart-link-wrapper:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 3px;
+}

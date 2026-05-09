@@ -1,0 +1,17 @@
+/**
+ * Smart Link — Cover inspector only (editor).
+ */
+
+.forwp-smart-link-cover-panel {
+	overflow: visible;
+
+	.block-editor-url-input__suggestions {
+		max-height: 11rem;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	.forwp-smart-link-cover-panel__remove {
+		margin-top: 8px;
+	}
+}

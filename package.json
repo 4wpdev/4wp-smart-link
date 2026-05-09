@@ -1,0 +1,15 @@
+{
+	"name": "4wp-smart-link",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Smart Link editor build",
+	"scripts": {
+		"build": "wp-scripts build && mkdir -p build/editor && cp editor/block.json build/editor/block.json",
+		"start": "wp-scripts start"
+	},
+	"devDependencies": {
+		"@wordpress/icons": "^13.0.0",
+		"@wordpress/scripts": "^26.0.0",
+		"sass": "^1.77.0"
+	}
+}
