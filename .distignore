@@ -21,3 +21,11 @@ node_modules/
 
 coverage/
 .phpunit.result.cache
+
+.venv-assets/
+.wordpress-org/
+scripts/
+
+# Staging PNGs for WordPress.org (not part of the plugin runtime).
+assets/wporg-incoming/*.png
+assets/wporg-incoming/*.jpg
