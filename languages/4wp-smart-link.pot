@@ -20,6 +20,10 @@ msgid "4WP Smart Link"
 msgstr ""
 
 #. Plugin URI of the plugin
+#: 4wp-smart-link.php
+msgid "https://4wp.dev/plugin/4wp-smart-link/"
+msgstr ""
+
 #. Author URI of the plugin
 #: 4wp-smart-link.php
 msgid "https://4wp.dev/"

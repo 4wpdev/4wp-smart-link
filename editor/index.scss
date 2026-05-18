@@ -1,7 +1,8 @@
 /**
- * Smart Link — Cover inspector only (editor).
+ * Smart Link — block inspector (editor).
  */
 
+.forwp-smart-link-panel,
 .forwp-smart-link-cover-panel {
 	overflow: visible;
 
@@ -11,7 +12,27 @@
 		overscroll-behavior: contain;
 	}
 
+	.forwp-smart-link-panel__remove,
 	.forwp-smart-link-cover-panel__remove {
 		margin-top: 8px;
 	}
+
+	.forwp-smart-link-panel__help {
+		margin: 0 0 12px;
+		color: #757575;
+		font-size: 12px;
+		line-height: 1.4;
+	}
+
+	.forwp-smart-link-panel__notice {
+		margin: 0 0 12px;
+	}
+
+	.forwp-smart-link-panel__inline-warning {
+		margin: 0 0 12px;
+	}
+}
+
+.forwp-smart-link-conflict-notice {
+	margin: 0 0 12px;
 }
