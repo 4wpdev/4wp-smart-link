@@ -12,22 +12,42 @@ Make Cover, Group, and Column blocks fully clickable in Gutenberg and Query Loop
 
 == Description ==
 
+Make **Cover**, **Group**, and **Column** blocks fully clickable in Gutenberg.
+
+Build Query Loop post cards where visitors can click the image or padding to open the post—while the post title, categories, tags, and buttons keep their own links.
+
 A plugin by [4wp.dev](https://4wp.dev/plugin/4wp-smart-link/).
 
-**Demo video:** https://www.youtube.com/watch?v=8ZGojkTl2CM
+https://www.youtube.com/watch?v=8ZGojkTl2CM
 
-Query Loop cards and layout blocks (**Cover**, **Group**, **Column**) often need a large click target—open the post, a landing page, or a campaign URL—while titles, tags, and buttons inside the card keep their own links. Core does not offer whole-block linking for these containers.
+= Perfect for =
 
-**4WP Smart Link** adds toolbar and inspector controls on **Cover**, **Group**, and **Column** so you can:
+* Clickable **post cards** in a Query Loop
+* **Cover** heroes that link to a landing page or the current post
+* **Group** or **Column** layouts that behave like one big tap target
 
-* Set a **custom URL** for Cover, Group, or Column.
-* In a Query Loop, link the block to the **current post** (uses the loop item’s post context).
-* Open the link in a **new tab** when you need to, with sensible `rel` handling for `target="_blank"`.
-* Add optional **relation** (`rel`) tokens and an **accessibility label** when you need more than the visible text.
+= How it works =
 
-The actual clickable wrapper is added on the **published front end** when the URL resolves. If there is no URL, the block output is unchanged.
+1. Select a **Cover**, **Group**, or **Column** block.
+2. Open **Smart Link** in the block toolbar.
+3. Choose **Custom Link** or **Post Link** (inside a Query Loop post template).
+4. Open **Preview** or the published page to test clicks.
 
-**Important:** When the block has no other links inside, the front end wraps it in a normal `<a>`. When inner links exist (post title, terms, buttons, etc.), the plugin uses a clickable container (`data-forwp-smart-link-url` + a small front-end script) so link-in-link HTML is never output—inner links keep their own URLs.
+Smart Link runs on the **published front end**. The block editor canvas may not show the same click area as the live site—use Preview when you check behavior.
+
+= When the block already has links inside =
+
+If the block has no other links inside, the whole block opens your URL.
+
+If you added a **Post Title**, **buttons**, or **terms** inside the block, those links still work separately. Clicking empty space (background, padding) opens your Smart Link URL—without broken nested links.
+
+== Screenshots ==
+
+1. Smart Link on a Cover inside a Query Loop—toolbar menu and sidebar with Post Link
+2. Published Query Loop cards—each Cover opens the matching post on the front end
+3. Custom Link on a Column block (social link cards in a Columns layout)
+4. Column Link settings—URL, new tab, nofollow, and accessibility label
+5. Front end: the whole Column card is clickable; inner text links still work separately
 
 == Installation ==
 
@@ -38,73 +58,70 @@ The actual clickable wrapper is added on the **published front end** when the UR
 
 = Which blocks are supported? =
 
-**4WP Smart Link** extends **Core Cover**, **Group**, and **Column** (`core/cover`, `core/group`, `core/column`).
+**Cover**, **Group**, and **Column** blocks from the WordPress block library.
 
 = What happens if the URL is empty? =
 
-No link wrapper is output; the block renders as usual.
+The block looks and behaves as usual—no extra link is added.
 
 = When does “Post Link” work? =
 
-Only when the block is inside a **Query Loop** post template (`core/post-template`). Each loop item supplies the post URL. Outside a Query Loop, use **Custom Link** instead.
+When the block is inside a **Query Loop** post template. Each card uses that post’s permalink. Outside a Query Loop, use **Custom Link** and enter your URL.
 
 = Does this replace native Cover linking? =
 
-Cover does not provide the same whole-block link semantics; **4WP Smart Link** adds anchor or host wrappers on the front end (see Other Notes).
+WordPress Cover does not make the whole block one click target in the way card layouts need. **4WP Smart Link** adds that on the front end—see *Other Notes* if you theme or extend the plugin.
 
 = Does it depend on other 4WP plugins? =
 
-No. It runs standalone.
+No. It runs on its own.
 
 = How do I make a Cover block clickable in a Query Loop? =
 
-Place a **Cover** (or **Group** / **Column**) inside the Query Loop post template. Select the block, open **Smart Link** in the toolbar, and choose **Post Link** so each card uses that loop item’s permalink. Preview or view the published page to test clicks—the editor canvas does not show the front-end wrapper.
+Place a **Cover** (or **Group** / **Column**) inside the Query Loop post template. Select the block, open **Smart Link**, and choose **Post Link**. Check clicks on the published page or in Preview.
 
-= How do I link a Group block that already has buttons or post title inside? =
+= How do I link a Group that already has buttons or a post title inside? =
 
-Enable **Smart Link** on the **Group** (or **Column** / **Cover**). Inner links (buttons, post title, categories, tags) stay separate and clickable. Clicks on empty areas (image, padding) open the Smart Link URL on the front end without invalid nested `<a>` markup.
+Turn on **Smart Link** on the **Group** (or **Column** / **Cover**). Buttons, title, categories, and tags keep their own links. Clicks on empty areas (image, padding) open your Smart Link URL.
 
 = How do I create clickable post cards in Gutenberg? =
 
-Build cards with **Query Loop** + **Cover** or **Group**, add **Smart Link** with **Post Link**, and optionally place **Post Title** or **Post Terms** inside the card. Visitors can open the post from the card surface while still using inner links where you added them.
+Use **Query Loop** with **Cover** or **Group**, enable **Smart Link** with **Post Link**, and add **Post Title** or **Post Terms** inside the card if you want. Visitors can open the post from the card surface and still use inner links.
 
-= Will the editor preview match the front end? =
+= Will the editor look exactly like the live site? =
 
-The link wrapper is applied on the **front end** only (via `render_block`). The block canvas does not show the same anchor or host wrapper, so use **Preview** or the live page to verify click behavior and theme styles.
+Not always. The clickable layer is added when WordPress renders the page on the front end. Use **Preview** or view the published page to confirm clicks and theme styles.
 
 = Accessibility: card-as-one-link pattern =
 
-With no inner links, the whole block is wrapped in one `<a>`. When inner links exist, a `role="link"` host container handles keyboard and pointer clicks on non-interactive areas; inner buttons and anchors stay focusable and separate.
+With no inner links, the whole block is one link—easy to tap and clear for assistive tech. When inner links exist, keyboard and screen-reader users can still reach buttons and text links separately; empty areas open your Smart Link URL.
 
 = SEO `rel` when opening in a new tab =
 
-For `target="_blank"` the plugin adds `noopener` and `noreferrer` to `rel` if missing, while preserving your `nofollow` and other tokens.
+If you open in a new tab, the plugin adds `noopener` and `noreferrer` when needed, and keeps your own `nofollow` or other `rel` values.
 
 == Other Notes ==
 
-**Theme and integration developers**
+**For developers and theme authors**
 
 **Anchor mode** (no inner links): wraps markup in `<a class="forwp-smart-link-wrapper forwp-smart-link-wrapper--{cover|group|column}">` with `data-forwp-smart-link`.
 
-**Host mode** (inner links present): wraps markup in `<div class="forwp-smart-link-host forwp-smart-link-host--{modifier}">` with `data-forwp-smart-link-url`, optional `data-forwp-smart-link-target`, `data-forwp-smart-link-rel`, and `assets/forwp-smart-link-frontend.js` for pointer/keyboard navigation on empty areas.
+**Host mode** (inner links present): uses `data-forwp-smart-link-url` and `assets/forwp-smart-link-frontend.js` so link-in-link HTML is never output; inner anchors stay separate.
 
 Filters: `forwp_smart_link_supported_blocks`, `forwp_smart_link_has_inner_links`, `forwp_smart_link_use_host_mode`.
 
-You may style `.forwp-smart-link-wrapper` globally or scope overrides with the `--cover` modifier. Editor-only UI uses separate `forwp-smart-link-cover-panel*` classes; do not rely on those for front-end styling.
+Style `.forwp-smart-link-wrapper` on the front end. Editor-only classes (`forwp-smart-link-cover-panel*`) are not stable for theme CSS.
 
-Further technical discussion: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smart-link).
+Source and issues: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smart-link).
 
 == Changelog ==
 
 = 1.1.0 =
-* Add Smart Link for **Group** and **Column** (same controls and Query Loop post link as Cover).
-* Two front-end modes: `<a>` wrap when there are no inner links; clickable host (`data-forwp-smart-link-url` + small JS) when inner links exist—no link-in-link HTML.
-* Server-side attribute registration (`Block_Attributes`); shared `Block_Link` / `Block_Inner_Links` render pipeline.
-* Public filters: `forwp_smart_link_supported_blocks`, `forwp_smart_link_has_inner_links`, `forwp_smart_link_use_host_mode`.
-* Editor notices explain host mode when title, terms, buttons, or other inner links are present.
+* Smart Link for **Group** and **Column** (same controls as Cover).
+* Query Loop **Post Link** on all three block types.
+* Safe behavior when the block already contains title, terms, or buttons—no invalid nested links.
+* Editor tips when inner links are detected.
 
 = 1.0.0 =
-* Initial release with Cover block support (custom URL, dynamic Query Loop link, toolbar + inspector).
-* Documented stable frontend classes (`forwp-smart-link-wrapper` + `--cover`, `data-forwp-smart-link`); editor uses `forwp-smart-link-cover-panel*` classes.
-* Translation template: `languages/4wp-smart-link.pot`.
-* Frontend stylesheet for predictable `:focus-visible` on the link wrapper (`assets/forwp-smart-link-frontend.css`).
+* Initial release: **Cover** block, custom URL, Query Loop post link, toolbar and sidebar controls.
+* Front-end styles for clear keyboard focus on the link wrapper.
