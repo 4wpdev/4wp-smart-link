@@ -12,9 +12,7 @@ A plugin by **[4wp.dev](https://4wp.dev/plugin/4wp-smart-link/)**.
 
 ## Demo
 
-<div align="center">
-  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/8ZGojkTl2CM" title="4WP Smart Link demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-</div>
+[![Watch the 4WP Smart Link demo on YouTube](https://img.youtube.com/vi/8ZGojkTl2CM/hqdefault.jpg)](https://www.youtube.com/watch?v=8ZGojkTl2CM)
 
 ## Perfect for
 
