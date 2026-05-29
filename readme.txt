@@ -18,6 +18,8 @@ Build Query Loop post cards where visitors can click the image or padding to ope
 
 A plugin by [4wp.dev](https://4wp.dev/plugin/4wp-smart-link/).
 
+= Demo =
+
 https://www.youtube.com/watch?v=8ZGojkTl2CM
 
 = Perfect for =
