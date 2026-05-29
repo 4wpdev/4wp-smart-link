@@ -4,7 +4,7 @@ Tags: gutenberg, query loop, clickable cover, group block, block link
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,10 @@ Style `.forwp-smart-link-wrapper` on the front end. Editor-only classes (`forwp-
 Source and issues: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smart-link).
 
 == Changelog ==
+
+= 1.2.1 =
+* Deactivate safely instead of a fatal error when the plugin install is incomplete (missing files after a bad update).
+* Ensures all 1.2.0 release files are included in the WordPress.org package.
 
 = 1.2.0 =
 * Cover **Enlarge on click** — core/image-compatible lightbox (expand icon; cover area is not a whole-block link).
