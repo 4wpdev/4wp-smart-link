@@ -4,7 +4,7 @@ Tags: gutenberg, query loop, clickable cover, group block, block link
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,14 +23,14 @@ https://www.youtube.com/watch?v=8ZGojkTl2CM
 = Perfect for =
 
 * Clickable **post cards** in a Query Loop
-* **Cover** heroes that link to a landing page or the current post
+* **Cover** heroes that link to a landing page, the current post, or **Enlarge on click** (core lightbox)
 * **Group** or **Column** layouts that behave like one big tap target
 
 = How it works =
 
 1. Select a **Cover**, **Group**, or **Column** block.
 2. Open **Smart Link** in the block toolbar.
-3. Choose **Custom Link** or **Post Link** (inside a Query Loop post template).
+3. Choose **Custom Link**, **Post Link** (inside a Query Loop post template), or on **Cover** with an image background: **Link to image file** / **Enlarge on click**.
 4. Open **Preview** or the published page to test clicks.
 
 Smart Link runs on the **published front end**. The block editor canvas may not show the same click area as the live site—use Preview when you check behavior.
@@ -84,6 +84,10 @@ Place a **Cover** (or **Group** / **Column**) inside the Query Loop post templat
 
 Turn on **Smart Link** on the **Group** (or **Column** / **Cover**). Buttons, title, categories, and tags keep their own links. Clicks on empty areas (image, padding) open your Smart Link URL.
 
+= How do I add Enlarge on click to a Cover block? =
+
+Select a **Cover** with an image background (not video only). Open **Smart Link** in the toolbar, choose **Enlarge on click**. The cover uses the same core lightbox as the Image block—a small expand icon opens the full image; the rest of the cover is not a link. In the sidebar you can include the cover in the **page lightbox gallery** to move between enlarged images on the same page.
+
 = How do I create clickable post cards in Gutenberg? =
 
 Use **Query Loop** with **Cover** or **Group**, enable **Smart Link** with **Post Link**, and add **Post Title** or **Post Terms** inside the card if you want. Visitors can open the post from the card surface and still use inner links.
@@ -115,6 +119,12 @@ Style `.forwp-smart-link-wrapper` on the front end. Editor-only classes (`forwp-
 Source and issues: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smart-link).
 
 == Changelog ==
+
+= 1.2.0 =
+* Cover **Enlarge on click** — core/image-compatible lightbox (expand icon; cover area is not a whole-block link).
+* Cover **Link to image file** and toolbar link UI aligned with the native Image block URL popover.
+* **Page lightbox gallery** — optional prev/next between Cover and Image lightboxes on the same page.
+* Editor preview shows the enlarge icon on Cover when lightbox is enabled.
 
 = 1.1.0 =
 * Smart Link for **Group** and **Column** (same controls as Cover).

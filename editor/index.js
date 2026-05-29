@@ -7,6 +7,7 @@ import {
 	InspectorControls,
 	LinkControl,
 	URLInput,
+	URLPopover,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
 import {
@@ -22,37 +23,36 @@ import {
 	CheckboxControl,
 	Popover,
 	Notice,
+	Icon,
 } from '@wordpress/components';
 import {
 	link as linkIcon,
 	postFeaturedImage,
+	image as imageIcon,
+	fullscreen as fullscreenIcon,
+	linkOff,
 } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
 
 import './index.scss';
 
-const SMART_LINK_ATTRIBUTES = {
-	smartLinkUrl: {
-		type: 'string',
-		default: '',
-	},
-	smartLinkNewTab: {
-		type: 'boolean',
-		default: false,
-	},
-	smartLinkRel: {
-		type: 'string',
-		default: '',
-	},
-	smartLinkAriaLabel: {
-		type: 'string',
-		default: '',
-	},
-	smartLinkToCurrentPost: {
-		type: 'boolean',
-		default: false,
-	},
-};
+import {
+	coverCanUseImageLinkModes,
+	useCoverBackgroundMediaUrl,
+} from './cover-smart-link';
+import { CoverLightboxEditorIndicator } from './cover-lightbox-editor-indicator';
+import {
+	SMART_LINK_BASE_ATTRIBUTES,
+	SMART_LINK_COVER_ATTRIBUTES,
+	SMART_LINK_DESTINATION,
+	isSmartLinkActive,
+	isSmartLinkLightboxMode,
+	isLightboxInPageGallery,
+	legacyDestinationMigrationPatch,
+	resolveSmartLinkDestination,
+	smartLinkDestinationPatch,
+	usesSmartLinkCardNavigation,
+} from './smart-link-destination';
 
 const SUPPORTED_BLOCKS = [
 	'core/cover',
@@ -157,10 +157,7 @@ function useAncestorHasSmartLink( clientId ) {
 					continue;
 				}
 
-				const { smartLinkUrl, smartLinkToCurrentPost } =
-					parent.attributes || {};
-
-				if ( smartLinkUrl || smartLinkToCurrentPost ) {
+				if ( isSmartLinkActive( parent.attributes || {} ) ) {
 					return true;
 				}
 			}
@@ -250,11 +247,19 @@ function addSmartLinkAttributes( settings, name ) {
 		return settings;
 	}
 
+	const smartLinkAttributes =
+		name === 'core/cover'
+			? {
+					...SMART_LINK_BASE_ATTRIBUTES,
+					...SMART_LINK_COVER_ATTRIBUTES,
+			  }
+			: { ...SMART_LINK_BASE_ATTRIBUTES };
+
 	return {
 		...settings,
 		attributes: {
 			...settings.attributes,
-			...SMART_LINK_ATTRIBUTES,
+			...smartLinkAttributes,
 		},
 	};
 }
@@ -265,7 +270,10 @@ addFilter(
 	addSmartLinkAttributes
 );
 
-function SmartLinkToolbar( {
+/**
+ * Cover toolbar link UI aligned with core Image block URLPopover + lightbox.
+ */
+function CoverSmartLinkUrlPopover( {
 	attributes,
 	setAttributes,
 	canUsePostLink,
@@ -277,16 +285,40 @@ function SmartLinkToolbar( {
 		smartLinkToCurrentPost,
 	} = attributes;
 
-	const [ isLinkControlOpen, setLinkControlOpen ] = useState( false );
-	const toggleRef = useRef( null );
+	const destination = resolveSmartLinkDestination( attributes );
+	const [ isLinkUIOpen, setIsLinkUIOpen ] = useState( false );
+	const [ isEditingCustomLink, setIsEditingCustomLink ] = useState( false );
+	const popoverAnchorRef = useRef( null );
 
 	useEffect( () => {
 		if ( smartLinkToCurrentPost && ! canUsePostLink ) {
 			setAttributes( {
 				smartLinkToCurrentPost: false,
+				smartLinkDestination: '',
 			} );
 		}
 	}, [ smartLinkToCurrentPost, canUsePostLink, setAttributes ] );
+
+	useEffect( () => {
+		if ( ! destination ) {
+			return;
+		}
+
+		const needsImage =
+			destination === SMART_LINK_DESTINATION.MEDIA ||
+			destination === SMART_LINK_DESTINATION.LIGHTBOX;
+
+		if ( needsImage && ! coverCanUseImageLinkModes( attributes ) ) {
+			setAttributes( smartLinkDestinationPatch( '' ) );
+		}
+	}, [
+		destination,
+		attributes?.id,
+		attributes?.url,
+		attributes?.useFeaturedImage,
+		attributes?.backgroundType,
+		setAttributes,
+	] );
 
 	const linkValue = useMemo(
 		() => ( {
@@ -305,32 +337,327 @@ function SmartLinkToolbar( {
 		} = nextValue || {};
 
 		setAttributes( {
+			...smartLinkDestinationPatch( SMART_LINK_DESTINATION.CUSTOM ),
 			smartLinkUrl: url,
+			smartLinkNewTab: opensInNewTab,
+			smartLinkRel: mergeNofollowIntoRel( smartLinkRel, nofollow ),
+		} );
+	};
+
+	const closeLinkUI = () => {
+		setIsLinkUIOpen( false );
+		setIsEditingCustomLink( false );
+	};
+
+	const onRemoveLink = () => {
+		setAttributes( smartLinkDestinationPatch( '' ) );
+		closeLinkUI();
+	};
+
+	const enableLightboxMode = () => {
+		setAttributes(
+			smartLinkDestinationPatch( SMART_LINK_DESTINATION.LIGHTBOX )
+		);
+		setIsEditingCustomLink( false );
+		setIsLinkUIOpen( true );
+	};
+
+	const openCustomLinkEditor = () => {
+		setAttributes( {
+			smartLinkDestination: SMART_LINK_DESTINATION.CUSTOM,
 			smartLinkToCurrentPost: false,
+			smartLinkLightbox: { enabled: false },
+		} );
+		setIsEditingCustomLink( true );
+		setIsLinkUIOpen( true );
+	};
+
+	const isLinkActive = isSmartLinkActive( attributes );
+	const isCustomDestination =
+		destination === SMART_LINK_DESTINATION.CUSTOM ||
+		( ! destination && !! smartLinkUrl );
+	const showExpandPanel =
+		destination === SMART_LINK_DESTINATION.LIGHTBOX &&
+		! smartLinkToCurrentPost &&
+		! smartLinkUrl;
+	const showCustomLinkEditor =
+		isCustomDestination &&
+		! smartLinkToCurrentPost &&
+		( ! smartLinkUrl || isEditingCustomLink );
+	const showDestinationMenu =
+		isLinkUIOpen &&
+		! showExpandPanel &&
+		! ( isCustomDestination && smartLinkUrl && ! isEditingCustomLink );
+
+	const renderPopoverChildren = () => {
+		if ( showExpandPanel ) {
+			return (
+				<div className="block-editor-url-popover__expand-on-click">
+					<Icon icon={ fullscreenIcon } />
+					<div className="text">
+						<p>{ __( 'Enlarge on click', '4wp-smart-link' ) }</p>
+						<p className="description">
+							{ __(
+								'Scales the image with a lightbox effect',
+								'4wp-smart-link'
+							) }
+						</p>
+					</div>
+					<Button
+						icon={ linkOff }
+						label={ __(
+							'Disable enlarge on click',
+							'4wp-smart-link'
+						) }
+						onClick={ onRemoveLink }
+						size="compact"
+					/>
+				</div>
+			);
+		}
+
+		if ( showCustomLinkEditor ) {
+			return (
+				<LinkControl
+					value={ linkValue }
+					onChange={ onLinkControlChange }
+					onRemove={ onRemoveLink }
+					settings={ LINK_SETTINGS }
+					forceIsEditingLink={ ! smartLinkUrl }
+				/>
+			);
+		}
+
+		if ( isCustomDestination && smartLinkUrl ) {
+			return (
+				<LinkControl
+					value={ linkValue }
+					onChange={ onLinkControlChange }
+					onRemove={ onRemoveLink }
+					settings={ LINK_SETTINGS }
+				/>
+			);
+		}
+
+		return null;
+	};
+
+	return (
+		<BlockControls group="block">
+			<ToolbarGroup>
+				<ToolbarButton
+					ref={ popoverAnchorRef }
+					className="components-toolbar__control"
+					icon={ linkIcon }
+					label={ __( 'Smart Link (whole block)', '4wp-smart-link' ) }
+					aria-expanded={ isLinkUIOpen }
+					onClick={ () => setIsLinkUIOpen( ( open ) => ! open ) }
+					isPressed={ isLinkActive }
+				/>
+				{ isLinkUIOpen && (
+					<URLPopover
+						anchor={ popoverAnchorRef.current }
+						onClose={ closeLinkUI }
+						offset={ 13 }
+						additionalControls={
+							showDestinationMenu ? (
+								<NavigableMenu>
+									<MenuItem
+										icon={ linkIcon }
+										iconPosition="left"
+										isPressed={
+											destination ===
+											SMART_LINK_DESTINATION.CUSTOM
+										}
+										onClick={ openCustomLinkEditor }
+									>
+										{ __( 'Custom Link', '4wp-smart-link' ) }
+									</MenuItem>
+									{ canUsePostLink && (
+										<MenuItem
+											icon={ postFeaturedImage }
+											iconPosition="left"
+											isPressed={
+												destination ===
+												SMART_LINK_DESTINATION.POST
+											}
+											onClick={ () => {
+												setAttributes(
+													smartLinkDestinationPatch(
+														SMART_LINK_DESTINATION.POST
+													)
+												);
+												closeLinkUI();
+											} }
+										>
+											{ __( 'Post Link', '4wp-smart-link' ) }
+										</MenuItem>
+									) }
+									<MenuItem
+										icon={ imageIcon }
+										iconPosition="left"
+										isPressed={
+											destination ===
+											SMART_LINK_DESTINATION.MEDIA
+										}
+										onClick={ () => {
+											setAttributes(
+												smartLinkDestinationPatch(
+													SMART_LINK_DESTINATION.MEDIA
+												)
+											);
+											closeLinkUI();
+										} }
+									>
+										{ __(
+											'Link to image file',
+											'4wp-smart-link'
+										) }
+									</MenuItem>
+									<MenuItem
+										className="block-editor-url-popover__expand-on-click"
+										icon={ fullscreenIcon }
+										iconPosition="left"
+										info={ __(
+											'Scale the image with a lightbox effect.',
+											'4wp-smart-link'
+										) }
+										isPressed={
+											destination ===
+											SMART_LINK_DESTINATION.LIGHTBOX
+										}
+										onClick={ enableLightboxMode }
+									>
+										{ __( 'Enlarge on click', '4wp-smart-link' ) }
+									</MenuItem>
+									{ isLinkActive && (
+										<MenuItem onClick={ onRemoveLink }>
+											{ __( 'Reset', '4wp-smart-link' ) }
+										</MenuItem>
+									) }
+								</NavigableMenu>
+							) : null
+						}
+					>
+						{ renderPopoverChildren() }
+					</URLPopover>
+				) }
+			</ToolbarGroup>
+		</BlockControls>
+	);
+}
+
+function SmartLinkToolbar( {
+	blockName,
+	attributes,
+	setAttributes,
+	canUsePostLink,
+} ) {
+	const {
+		smartLinkUrl,
+		smartLinkNewTab,
+		smartLinkRel,
+		smartLinkToCurrentPost,
+	} = attributes;
+
+	const isCover = blockName === 'core/cover';
+	const destination = resolveSmartLinkDestination( attributes );
+	const canUseCoverImageModes =
+		isCover && coverCanUseImageLinkModes( attributes );
+
+	if ( isCover && canUseCoverImageModes ) {
+		return (
+			<CoverSmartLinkUrlPopover
+				attributes={ attributes }
+				setAttributes={ setAttributes }
+				canUsePostLink={ canUsePostLink }
+			/>
+		);
+	}
+
+	const [ isLinkControlOpen, setLinkControlOpen ] = useState( false );
+	const toggleRef = useRef( null );
+
+	useEffect( () => {
+		if ( smartLinkToCurrentPost && ! canUsePostLink ) {
+			setAttributes( {
+				smartLinkToCurrentPost: false,
+				smartLinkDestination: '',
+			} );
+		}
+	}, [ smartLinkToCurrentPost, canUsePostLink, setAttributes ] );
+
+	useEffect( () => {
+		if ( ! isCover || ! destination ) {
+			return;
+		}
+
+		const needsImage =
+			destination === SMART_LINK_DESTINATION.MEDIA ||
+			destination === SMART_LINK_DESTINATION.LIGHTBOX;
+
+		if ( needsImage && ! coverCanUseImageLinkModes( attributes ) ) {
+			setAttributes( smartLinkDestinationPatch( '' ) );
+		}
+	}, [
+		isCover,
+		destination,
+		attributes?.id,
+		attributes?.url,
+		attributes?.useFeaturedImage,
+		attributes?.backgroundType,
+		canUsePostLink,
+		setAttributes,
+	] );
+
+	const linkValue = useMemo(
+		() => ( {
+			url: smartLinkToCurrentPost ? '' : smartLinkUrl || '',
+			opensInNewTab: !! smartLinkNewTab,
+			nofollow: relTokensIncludeNofollow( smartLinkRel ),
+		} ),
+		[ smartLinkUrl, smartLinkNewTab, smartLinkRel, smartLinkToCurrentPost ]
+	);
+
+	const onLinkControlChange = ( nextValue ) => {
+		const {
+			url = '',
+			opensInNewTab = false,
+			nofollow = false,
+		} = nextValue || {};
+
+		setAttributes( {
+			...smartLinkDestinationPatch( SMART_LINK_DESTINATION.CUSTOM ),
+			smartLinkUrl: url,
 			smartLinkNewTab: opensInNewTab,
 			smartLinkRel: mergeNofollowIntoRel( smartLinkRel, nofollow ),
 		} );
 	};
 
 	const onRemoveLink = () => {
-		setAttributes( {
-			smartLinkUrl: '',
-			smartLinkNewTab: false,
-			smartLinkToCurrentPost: false,
-			smartLinkRel: '',
-			smartLinkAriaLabel: '',
-		} );
+		setAttributes( smartLinkDestinationPatch( '' ) );
 		setLinkControlOpen( false );
 	};
 
 	const openCustomLinkPopover = () => {
-		setAttributes( { smartLinkToCurrentPost: false } );
+		setAttributes( {
+			smartLinkDestination: SMART_LINK_DESTINATION.CUSTOM,
+			smartLinkToCurrentPost: false,
+			smartLinkLightbox: { enabled: false },
+		} );
 		requestAnimationFrame( () => {
 			setLinkControlOpen( true );
 		} );
 	};
 
-	const isLinkActive = !! smartLinkUrl || !! smartLinkToCurrentPost;
+	const isLinkActive = isSmartLinkActive( attributes );
+	const isCustomDestination =
+		destination === SMART_LINK_DESTINATION.CUSTOM ||
+		( ! destination && !! smartLinkUrl );
+	const showCustomLinkPopover =
+		isLinkControlOpen &&
+		! smartLinkToCurrentPost &&
+		isCustomDestination;
 
 	return (
 		<BlockControls group="block">
@@ -356,8 +683,7 @@ function SmartLinkToolbar( {
 							<MenuItem
 								icon={ linkIcon }
 								isPressed={
-									! smartLinkToCurrentPost &&
-									!! smartLinkUrl
+									destination === SMART_LINK_DESTINATION.CUSTOM
 								}
 								onClick={ () => {
 									onClose();
@@ -369,12 +695,15 @@ function SmartLinkToolbar( {
 							{ canUsePostLink && (
 								<MenuItem
 									icon={ postFeaturedImage }
-									isPressed={ smartLinkToCurrentPost }
+									isPressed={
+										destination === SMART_LINK_DESTINATION.POST
+									}
 									onClick={ () => {
-										setAttributes( {
-											smartLinkToCurrentPost: true,
-											smartLinkUrl: '',
-										} );
+										setAttributes(
+											smartLinkDestinationPatch(
+												SMART_LINK_DESTINATION.POST
+											)
+										);
 										setLinkControlOpen( false );
 										onClose();
 									} }
@@ -395,7 +724,7 @@ function SmartLinkToolbar( {
 						</NavigableMenu>
 					) }
 				/>
-				{ isLinkControlOpen && ! smartLinkToCurrentPost && (
+				{ showCustomLinkPopover && (
 					<Popover
 						anchorRef={ toggleRef }
 						placement="bottom"
@@ -433,17 +762,44 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 		const smartLinkAriaLabel = props.attributes?.smartLinkAriaLabel;
 		const smartLinkToCurrentPost = props.attributes?.smartLinkToCurrentPost;
 
-		const isLinkActive =
-			!! smartLinkUrl || !! smartLinkToCurrentPost;
+		const isLinkActive = isSmartLinkActive( props.attributes || {} );
+		const usesCardLink = usesSmartLinkCardNavigation(
+			props.attributes || {}
+		);
+		const smartLinkDestination = resolveSmartLinkDestination(
+			props.attributes || {}
+		);
+		const isCover = props.name === 'core/cover';
+		const canUsePostLink = useIsInsidePostTemplate( props.clientId );
+		const canUseCoverImageModes =
+			isCover &&
+			coverCanUseImageLinkModes( props.attributes || {} );
+		const coverMediaUrl = useCoverBackgroundMediaUrl(
+			isCover ? props.attributes : {}
+		);
+
+		useEffect( () => {
+			const migration = legacyDestinationMigrationPatch(
+				props.attributes || {}
+			);
+
+			if ( migration ) {
+				props.setAttributes( migration );
+			}
+		}, [
+			props.clientId,
+			props.attributes?.smartLinkDestination,
+			props.attributes?.smartLinkUrl,
+			props.attributes?.smartLinkToCurrentPost,
+			props.setAttributes,
+		] );
 
 		const innerConflictNotice =
 			! isSupported && ancestorHasSmartLink && hasNativeLink;
 		const containerConflictPending =
-			isSupported &&
-			hasNestedNativeLinks &&
-			! isLinkActive;
+			isSupported && hasNestedNativeLinks && ! usesCardLink;
 		const containerConflictActive =
-			isSupported && hasNestedNativeLinks && isLinkActive;
+			isSupported && hasNestedNativeLinks && usesCardLink;
 
 		const showConflictNotice =
 			innerConflictNotice ||
@@ -474,15 +830,25 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 			BLOCK_PANEL_TITLES[ props.name ] ||
 			__( 'Smart Link', '4wp-smart-link' );
 
-		const canUsePostLink = useIsInsidePostTemplate( props.clientId );
-
 		useEffect( () => {
 			if ( smartLinkToCurrentPost && ! canUsePostLink ) {
-				props.setAttributes( { smartLinkToCurrentPost: false } );
+				props.setAttributes( {
+					smartLinkToCurrentPost: false,
+					smartLinkDestination: '',
+				} );
 			}
 		}, [ smartLinkToCurrentPost, canUsePostLink, props.setAttributes ] );
 
 		const clearInspectorCustomLink = () => {
+			const destination = resolveSmartLinkDestination(
+				props.attributes || {}
+			);
+
+			if ( SMART_LINK_DESTINATION.CUSTOM === destination ) {
+				props.setAttributes( smartLinkDestinationPatch( '' ) );
+				return;
+			}
+
 			props.setAttributes( {
 				smartLinkUrl: '',
 				smartLinkNewTab: false,
@@ -491,15 +857,37 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 			} );
 		};
 
+		const showCoverLightboxIndicator =
+			isCover &&
+			canUseCoverImageModes &&
+			smartLinkDestination === SMART_LINK_DESTINATION.LIGHTBOX;
+
+		const coverLightboxSyncKey = [
+			props.attributes?.id,
+			props.attributes?.url,
+			props.attributes?.useFeaturedImage,
+			props.attributes?.dimRatio,
+			props.attributes?.minHeight,
+			props.attributes?.minHeightUnit,
+		].join( '|' );
+
 		return (
 			<Fragment>
 				<BlockEdit { ...props } />
+				{ showCoverLightboxIndicator && (
+					<CoverLightboxEditorIndicator
+						clientId={ props.clientId }
+						enabled={ showCoverLightboxIndicator }
+						syncKey={ coverLightboxSyncKey }
+					/>
+				) }
 				{ showConflictNotice && (
 					<InspectorControls>
 						<SmartLinkConflictNotice variant={ conflictVariant } />
 					</InspectorControls>
 				) }
 				<SmartLinkToolbar
+					blockName={ props.name }
 					attributes={ props.attributes }
 					setAttributes={ props.setAttributes }
 					canUsePostLink={ canUsePostLink }
@@ -522,6 +910,129 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 								) }
 							</Notice>
 						) }
+						{ isCover &&
+							smartLinkDestination ===
+								SMART_LINK_DESTINATION.LIGHTBOX && (
+								<>
+									<Notice
+										className="forwp-smart-link-panel__inline-warning"
+										status="info"
+										isDismissible={ false }
+									>
+										{ __(
+											'Enlarge on click adds a lightbox button on the front end (like the Image block). The cover area itself is not a link.',
+											'4wp-smart-link'
+										) }
+									</Notice>
+									<ToggleControl
+										__nextHasNoMarginBottom
+										label={ __(
+											'Include in page lightbox gallery',
+											'4wp-smart-link'
+										) }
+										help={ __(
+											'When enabled, visitors can move to other enlarged images on this page. Turn off to open only this cover’s image.',
+											'4wp-smart-link'
+										) }
+										checked={ isLightboxInPageGallery(
+											props.attributes
+										) }
+										onChange={ ( value ) =>
+											props.setAttributes( {
+												smartLinkLightbox: {
+													...( props.attributes
+														?.smartLinkLightbox &&
+													typeof props.attributes
+														.smartLinkLightbox ===
+														'object'
+														? props.attributes
+																.smartLinkLightbox
+														: {} ),
+													enabled: true,
+													includeInPageGallery:
+														!! value,
+												},
+											} )
+										}
+									/>
+									<Button
+										__next40pxDefaultSize
+										className="forwp-smart-link-panel__remove"
+										variant="link"
+										isDestructive
+										onClick={ () =>
+											props.setAttributes(
+												smartLinkDestinationPatch( '' )
+											)
+										}
+									>
+										{ __( 'Disable enlarge on click', '4wp-smart-link' ) }
+									</Button>
+								</>
+							) }
+						{ isCover && ! canUseCoverImageModes && (
+							<p className="forwp-smart-link-panel__help">
+								{ __(
+									'Link to image file and Enlarge on click require a cover background image.',
+									'4wp-smart-link'
+								) }
+							</p>
+						) }
+						{ isCover &&
+							smartLinkDestination ===
+								SMART_LINK_DESTINATION.MEDIA && (
+								<>
+									<p className="forwp-smart-link-panel__help">
+										{ coverMediaUrl
+											? __(
+													'The whole cover links to the background image file on the front end.',
+													'4wp-smart-link'
+											  )
+											: __(
+													'Add a background image to this cover to use this link mode.',
+													'4wp-smart-link'
+											  ) }
+									</p>
+									{ !! coverMediaUrl && (
+										<TextControl
+											__next40pxDefaultSize
+											__nextHasNoMarginBottom
+											label={ __(
+												'Image file URL',
+												'4wp-smart-link'
+											) }
+											value={ coverMediaUrl }
+											readOnly
+										/>
+									) }
+									<CheckboxControl
+										__nextHasNoMarginBottom
+										label={ __(
+											'Open in new tab',
+											'4wp-smart-link'
+										) }
+										checked={ !! smartLinkNewTab }
+										onChange={ ( value ) =>
+											props.setAttributes( {
+												smartLinkNewTab: value,
+											} )
+										}
+									/>
+									<Button
+										__next40pxDefaultSize
+										className="forwp-smart-link-panel__remove"
+										variant="link"
+										isDestructive
+										onClick={ () =>
+											props.setAttributes(
+												smartLinkDestinationPatch( '' )
+											)
+										}
+									>
+										{ __( 'Remove link', '4wp-smart-link' ) }
+									</Button>
+								</>
+							) }
 						{ canUsePostLink ? (
 							<ToggleControl
 								__nextHasNoMarginBottom
@@ -529,11 +1040,18 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 									'Dynamic: Link to current post (Query Loop)',
 									'4wp-smart-link'
 								) }
-								checked={ !! smartLinkToCurrentPost }
+								checked={
+									smartLinkDestination ===
+									SMART_LINK_DESTINATION.POST
+								}
 								onChange={ ( value ) =>
-									props.setAttributes( {
-										smartLinkToCurrentPost: value,
-									} )
+									props.setAttributes(
+										value
+											? smartLinkDestinationPatch(
+													SMART_LINK_DESTINATION.POST
+											  )
+											: smartLinkDestinationPatch( '' )
+									)
 								}
 							/>
 						) : (
@@ -544,7 +1062,8 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 								) }
 							</p>
 						) }
-						{ smartLinkToCurrentPost && canUsePostLink ? (
+						{ smartLinkDestination === SMART_LINK_DESTINATION.POST &&
+						canUsePostLink ? (
 							<>
 								<CheckboxControl
 									__nextHasNoMarginBottom
@@ -579,13 +1098,21 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 									}
 								/>
 							</>
-						) : (
+						) : smartLinkDestination ===
+								SMART_LINK_DESTINATION.MEDIA ||
+						  smartLinkDestination ===
+								SMART_LINK_DESTINATION.LIGHTBOX ? null : (
 							<div className="forwp-smart-link-panel__custom">
 								<URLInput
 									label={ __( 'URL', '4wp-smart-link' ) }
 									value={ smartLinkUrl || '' }
 									onChange={ ( url ) =>
 										props.setAttributes( {
+											...smartLinkDestinationPatch(
+												url
+													? SMART_LINK_DESTINATION.CUSTOM
+													: ''
+											),
 											smartLinkUrl: url || '',
 										} )
 									}

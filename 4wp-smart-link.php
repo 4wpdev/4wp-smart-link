@@ -3,26 +3,26 @@
  * Plugin Name:       4WP Smart Link
  * Plugin URI:        https://4wp.dev/plugin/4wp-smart-link/
  * Description:       Smart Gutenberg blocks for advanced static and dynamic linking from blocks.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
- * Tested up to:     6.9
+ * Tested up to:      6.9
  * Author:            4WP
  * Author URI:        https://4wp.dev/
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       4wp-smart-link
  *
- * @package Forwp_Smart_Link
+ * @package ForWP\SmartLink
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORWP_SMART_LINK_VERSION', '1.1.0' );
+define( 'FORWP_SMART_LINK_VERSION', '1.2.0' );
 define( 'FORWP_SMART_LINK_FILE', __FILE__ );
 define( 'FORWP_SMART_LINK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FORWP_SMART_LINK_URL', plugin_dir_url( __FILE__ ) );
 
 require_once FORWP_SMART_LINK_PATH . 'includes/bootstrap.php';
 
-Forwp\SmartLink\Bootstrap::init();
+ForWP\SmartLink\Bootstrap::init();

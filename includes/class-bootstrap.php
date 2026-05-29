@@ -2,10 +2,10 @@
 /**
  * Plugin bootstrap.
  *
- * @package Forwp\SmartLink
+ * @package ForWP\SmartLink
  */
 
-namespace Forwp\SmartLink;
+namespace ForWP\SmartLink;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -22,16 +22,25 @@ final class Bootstrap {
 	private static $frontend_script_enqueued = false;
 
 	/**
+	 * Whether core/image lightbox assets were requested during render.
+	 *
+	 * @var bool
+	 */
+	private static $cover_lightbox_enqueued = false;
+
+	/**
 	 * Wire WordPress hooks.
 	 *
 	 * @return void
 	 */
 	public static function init(): void {
 		add_action( 'init', array( self::class, 'register_editor_block' ) );
+		add_action( 'enqueue_block_editor_assets', array( self::class, 'enqueue_editor_assets' ) );
 		add_action( 'wp_enqueue_scripts', array( self::class, 'enqueue_frontend_assets' ) );
 
 		Block_Attributes::register();
 		Block_Link::register();
+		Smart_Link_Page_Lightbox_Gallery::register();
 	}
 
 	/**
@@ -44,6 +53,17 @@ final class Bootstrap {
 
 		if ( is_readable( $dir . '/block.json' ) ) {
 			register_block_type( $dir );
+		}
+	}
+
+	/**
+	 * Core image lightbox trigger styles for the Cover editor indicator.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_editor_assets(): void {
+		if ( wp_style_is( 'wp-block-image', 'registered' ) ) {
+			wp_enqueue_style( 'wp-block-image' );
 		}
 	}
 
@@ -63,6 +83,10 @@ final class Bootstrap {
 		if ( self::$frontend_script_enqueued ) {
 			self::register_frontend_script();
 		}
+
+		if ( self::$cover_lightbox_enqueued ) {
+			self::register_cover_lightbox_assets();
+		}
 	}
 
 	/**
@@ -75,6 +99,47 @@ final class Bootstrap {
 
 		if ( did_action( 'wp_enqueue_scripts' ) ) {
 			self::register_frontend_script();
+		}
+	}
+
+	/**
+	 * Mark core/image lightbox assets for enqueue (safe during block render).
+	 *
+	 * @return void
+	 */
+	public static function enqueue_cover_lightbox(): void {
+		self::$cover_lightbox_enqueued = true;
+
+		if ( did_action( 'wp_enqueue_scripts' ) ) {
+			self::register_cover_lightbox_assets();
+		}
+	}
+
+	/**
+	 * @return void
+	 */
+	private static function register_cover_lightbox_assets(): void {
+		if ( ! wp_style_is( 'wp-block-image', 'enqueued' ) ) {
+			wp_enqueue_style( 'wp-block-image' );
+		}
+
+		if ( ! function_exists( 'wp_register_script_module' ) ) {
+			return;
+		}
+
+		wp_enqueue_script_module( '@wordpress/block-library/image/view' );
+
+		$gallery_path = FORWP_SMART_LINK_PATH . 'assets/forwp-smart-link-lightbox-gallery.js';
+		$gallery_url  = FORWP_SMART_LINK_URL . 'assets/forwp-smart-link-lightbox-gallery.js';
+
+		if ( is_readable( $gallery_path ) ) {
+			wp_register_script_module(
+				'forwp/smart-link-lightbox-gallery',
+				$gallery_url,
+				array( '@wordpress/block-library/image/view' ),
+				FORWP_SMART_LINK_VERSION
+			);
+			wp_enqueue_script_module( 'forwp/smart-link-lightbox-gallery' );
 		}
 	}
 

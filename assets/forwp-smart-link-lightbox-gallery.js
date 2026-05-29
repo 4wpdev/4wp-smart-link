@@ -1,0 +1,292 @@
+/**
+ * Extends core/image lightbox: fill imageRef before overlay layout (Cover + carousel slides).
+ *
+ * @see wp-includes/js/dist/script-modules/interactivity/index.js (universalUnlock)
+ */
+import { store } from '@wordpress/interactivity';
+
+const universalUnlock =
+	'I acknowledge that using a private store means my plugin will inevitably break on the next store release.';
+
+let state;
+let callbacks;
+
+try {
+	const imageStore = store( 'core/image', {}, { lock: universalUnlock } );
+	state = imageStore.state;
+	callbacks = imageStore.callbacks;
+} catch ( error ) {
+	// eslint-disable-next-line no-console
+	console.warn( '[4wp-smart-link] Lightbox gallery extension skipped.', error );
+}
+
+/**
+ * @param {string} imageId Metadata key.
+ * @return {string}
+ */
+function escapeImageId( imageId ) {
+	if ( typeof CSS !== 'undefined' && CSS.escape ) {
+		return CSS.escape( imageId );
+	}
+
+	return String( imageId ).replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' );
+}
+
+/**
+ * @param {string} imageId Metadata key.
+ * @return {HTMLImageElement|null}
+ */
+function findImageElementForId( imageId ) {
+	const safeId = escapeImageId( imageId );
+	const keyed = document.querySelector( `[data-wp-key="${ safeId }"]` );
+
+	if ( keyed ) {
+		const region = keyed.closest( '[data-wp-interactive="core/image"]' );
+		const scoped = region || keyed.parentElement;
+
+		if ( scoped ) {
+			const fromKey =
+				scoped.querySelector( 'img.wp-block-cover__image-background' ) ||
+				scoped.querySelector( 'figure.wp-lightbox-container img' ) ||
+				scoped.querySelector( 'img' );
+
+			if ( fromKey ) {
+				return fromKey;
+			}
+		}
+	}
+
+	const regions = document.querySelectorAll(
+		'[data-wp-interactive="core/image"]'
+	);
+
+	for ( const region of regions ) {
+		const raw = region.getAttribute( 'data-wp-context' );
+
+		if ( ! raw ) {
+			continue;
+		}
+
+		let ctx;
+
+		try {
+			ctx = JSON.parse( raw );
+		} catch {
+			continue;
+		}
+
+		if ( ctx.imageId !== imageId ) {
+			continue;
+		}
+
+		const img =
+			region.querySelector( 'img.wp-block-cover__image-background' ) ||
+			region.querySelector( 'figure.wp-lightbox-container img' ) ||
+			region.querySelector( '.wp-lightbox-container img' ) ||
+			region.querySelector( 'img' );
+
+		if ( img ) {
+			return img;
+		}
+	}
+
+	return null;
+}
+
+/**
+ * @param {Record<string, unknown>} meta Image metadata entry.
+ * @return {HTMLImageElement|null}
+ */
+function probeImageFromMetadata( meta ) {
+	const src = meta?.uploadedSrc;
+
+	if ( typeof src !== 'string' || '' === src ) {
+		return null;
+	}
+
+	const probe = new Image();
+	probe.src = src;
+
+	if ( probe.naturalWidth > 0 && probe.naturalHeight > 0 ) {
+		return probe;
+	}
+
+	return null;
+}
+
+/**
+ * @param {string} imageId Metadata key.
+ */
+function ensureImageRef( imageId ) {
+	if ( ! imageId || ! state?.metadata?.[ imageId ] ) {
+		return;
+	}
+
+	const entry = state.metadata[ imageId ];
+
+	if ( entry.imageRef?.complete ) {
+		return;
+	}
+
+	const domImg = findImageElementForId( imageId );
+
+	if ( domImg ) {
+		entry.imageRef = domImg;
+		entry.currentSrc = domImg.currentSrc || domImg.src;
+		return;
+	}
+
+	const probe = probeImageFromMetadata( entry );
+
+	if ( probe ) {
+		entry.imageRef = probe;
+		entry.currentSrc = srcFromMetadata( entry );
+	}
+}
+
+/**
+ * @param {Record<string, unknown>} meta Image metadata.
+ * @return {string}
+ */
+function srcFromMetadata( meta ) {
+	return typeof meta.uploadedSrc === 'string' ? meta.uploadedSrc : '';
+}
+
+function ensureGalleryImageRefs() {
+	if ( ! state?.selectedGalleryId || ! state.metadata ) {
+		return;
+	}
+
+	for ( const [ imageId, meta ] of Object.entries( state.metadata ) ) {
+		if ( meta?.galleryId === state.selectedGalleryId ) {
+			ensureImageRef( imageId );
+		}
+	}
+}
+
+/**
+ * @param {Record<string, unknown>} meta Selected image metadata.
+ */
+function applyCenteredOverlayStyles( meta ) {
+	const imageRef = meta.imageRef;
+	const parsedWidth = parseFloat( meta.targetWidth );
+	const parsedHeight = parseFloat( meta.targetHeight );
+	const naturalWidth =
+		imageRef?.naturalWidth ||
+		( ! Number.isNaN( parsedWidth ) ? parsedWidth : 1200 );
+	const naturalHeight =
+		imageRef?.naturalHeight ||
+		( ! Number.isNaN( parsedHeight ) ? parsedHeight : 800 );
+
+	let imgMaxWidth = naturalWidth;
+	let imgMaxHeight = naturalHeight;
+
+	let horizontalPadding = 80;
+	let verticalPadding = 160;
+
+	if ( window.innerWidth > 960 ) {
+		horizontalPadding = state.hasNavigation ? 320 : 80;
+		verticalPadding = 80;
+	} else if ( window.innerWidth <= 480 ) {
+		horizontalPadding = 0;
+		verticalPadding = 160;
+	}
+
+	const targetMaxWidth = Math.min(
+		window.innerWidth - horizontalPadding,
+		imgMaxWidth
+	);
+	const targetMaxHeight = Math.min(
+		window.innerHeight - verticalPadding,
+		imgMaxHeight
+	);
+	const imgRatio = imgMaxWidth / imgMaxHeight;
+	const targetContainerRatio = targetMaxWidth / targetMaxHeight;
+	let containerWidth = imgMaxWidth;
+	let containerHeight = imgMaxHeight;
+
+	if ( imgRatio > targetContainerRatio ) {
+		containerWidth = targetMaxWidth;
+		containerHeight = containerWidth / imgRatio;
+	} else {
+		containerHeight = targetMaxHeight;
+		containerWidth = containerHeight * imgRatio;
+	}
+
+	const centerX = window.innerWidth / 2;
+	const centerY = window.innerHeight / 2;
+
+	state.overlayStyles = `
+		--wp--lightbox-initial-top-position: ${ centerY }px;
+		--wp--lightbox-initial-left-position: ${ centerX }px;
+		--wp--lightbox-container-width: ${ containerWidth + 1 }px;
+		--wp--lightbox-container-height: ${ containerHeight + 1 }px;
+		--wp--lightbox-image-width: ${ containerWidth }px;
+		--wp--lightbox-image-height: ${ containerHeight }px;
+		--wp--lightbox-scale: 1;
+		--wp--lightbox-scrollbar-width: ${
+			window.innerWidth - document.documentElement.clientWidth
+		}px;
+	`;
+}
+
+/**
+ * @param {Record<string, unknown>|undefined} meta Selected image metadata.
+ * @return {boolean}
+ */
+function isCoverLightboxSlide( meta ) {
+	const classNames = meta?.imgClassNames;
+
+	return (
+		typeof classNames === 'string' &&
+		classNames.includes( 'wp-block-cover__image-background' )
+	);
+}
+
+function runSetOverlayStyles( originalSetOverlayStyles ) {
+	if ( ! state?.overlayEnabled ) {
+		return;
+	}
+
+	ensureGalleryImageRefs();
+	ensureImageRef( state.selectedImageId );
+
+	const meta = state.selectedImage;
+
+	if ( ! meta ) {
+		return;
+	}
+
+	if ( ! meta.imageRef ) {
+		const probe = probeImageFromMetadata( meta );
+
+		if ( probe ) {
+			meta.imageRef = probe;
+			meta.currentSrc = srcFromMetadata( meta );
+		}
+	}
+
+	if ( ! meta.imageRef ) {
+		applyCenteredOverlayStyles( meta );
+		return;
+	}
+
+	if ( isCoverLightboxSlide( meta ) ) {
+		applyCenteredOverlayStyles( meta );
+		return;
+	}
+
+	try {
+		originalSetOverlayStyles.call( this );
+	} catch ( error ) {
+		applyCenteredOverlayStyles( meta );
+	}
+}
+
+if ( callbacks?.setOverlayStyles && state ) {
+	const originalSetOverlayStyles = callbacks.setOverlayStyles;
+
+	callbacks.setOverlayStyles = function forwpSetOverlayStyles() {
+		runSetOverlayStyles( originalSetOverlayStyles );
+	};
+}

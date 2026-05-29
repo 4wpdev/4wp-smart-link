@@ -2,10 +2,10 @@
 /**
  * Detect native inner links inside Smart Link containers.
  *
- * @package Forwp\SmartLink
+ * @package ForWP\SmartLink
  */
 
-namespace Forwp\SmartLink;
+namespace ForWP\SmartLink;
 
 defined( 'ABSPATH' ) || exit;
 

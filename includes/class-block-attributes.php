@@ -2,10 +2,10 @@
 /**
  * Server-side Smart Link attribute registration for supported core blocks.
  *
- * @package Forwp\SmartLink
+ * @package ForWP\SmartLink
  */
 
-namespace Forwp\SmartLink;
+namespace ForWP\SmartLink;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -18,6 +18,10 @@ final class Block_Attributes {
 	 * @var array<string, array<string, mixed>>
 	 */
 	private const SMART_LINK_ATTRIBUTES = array(
+		'smartLinkDestination'     => array(
+			'type'    => 'string',
+			'default' => '',
+		),
 		'smartLinkUrl'             => array(
 			'type'    => 'string',
 			'default' => '',
@@ -37,6 +41,18 @@ final class Block_Attributes {
 		'smartLinkToCurrentPost'   => array(
 			'type'    => 'boolean',
 			'default' => false,
+		),
+	);
+
+	/**
+	 * Cover-only: core/image-compatible lightbox override (`enabled` key).
+	 *
+	 * @var array<string, array<string, mixed>>
+	 */
+	private const COVER_SMART_LINK_ATTRIBUTES = array(
+		'smartLinkLightbox' => array(
+			'type'    => 'object',
+			'default' => array(),
 		),
 	);
 
@@ -70,7 +86,13 @@ final class Block_Attributes {
 			$args['attributes'] = array();
 		}
 
-		$args['attributes'] = array_merge( $args['attributes'], self::SMART_LINK_ATTRIBUTES );
+		$extra = self::SMART_LINK_ATTRIBUTES;
+
+		if ( 'core/cover' === $block_name ) {
+			$extra = array_merge( $extra, self::COVER_SMART_LINK_ATTRIBUTES );
+		}
+
+		$args['attributes'] = array_merge( $args['attributes'], $extra );
 
 		return $args;
 	}

@@ -42,7 +42,9 @@
 		}
 
 		return Boolean(
-			el.closest( 'a, button, input, select, textarea, [role="button"]' )
+			el.closest(
+				'a, button, input, select, textarea, label, summary, [role="button"], [role="link"]'
+			)
 		);
 	}
 
@@ -80,10 +82,11 @@
 	}
 
 	function init() {
-		var hosts = document.querySelectorAll( '[data-forwp-smart-link-url]' );
+		var urlHosts = document.querySelectorAll( '[data-forwp-smart-link-url]' );
+		var i;
 
-		for ( var i = 0; i < hosts.length; i++ ) {
-			initHost( hosts[ i ] );
+		for ( i = 0; i < urlHosts.length; i++ ) {
+			initHost( urlHosts[ i ] );
 		}
 	}
 

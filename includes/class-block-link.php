@@ -2,10 +2,10 @@
 /**
  * Smart Link wrapper for supported core blocks.
  *
- * @package Forwp\SmartLink
+ * @package ForWP\SmartLink
  */
 
-namespace Forwp\SmartLink;
+namespace ForWP\SmartLink;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -72,6 +72,20 @@ final class Block_Link {
 		}
 
 		$attrs = self::get_block_attrs( $block, $instance );
+
+		if ( Smart_Link_Destination::is_lightbox_mode( $attrs ) ) {
+			if ( 'cover' !== $modifier ) {
+				return is_string( $block_content ) ? $block_content : '';
+			}
+
+			$block_content = is_string( $block_content ) ? trim( $block_content ) : '';
+
+			if ( '' === $block_content ) {
+				return '';
+			}
+
+			return Smart_Link_Cover_Lightbox::render( $block_content, $attrs, $block, $instance );
+		}
 
 		$url = self::sanitize_smart_link_url( self::resolve_url( $attrs, $block, $instance ) );
 		if ( '' === $url ) {
@@ -152,7 +166,9 @@ final class Block_Link {
 	 * @return string
 	 */
 	private static function resolve_url( array $attrs, array $block, $instance ): string {
-		if ( ! empty( $attrs['smartLinkToCurrentPost'] ) ) {
+		$destination = Smart_Link_Destination::resolve( $attrs );
+
+		if ( Smart_Link_Destination::POST === $destination || ! empty( $attrs['smartLinkToCurrentPost'] ) ) {
 			$post_id = self::resolve_query_post_id( $block, $instance );
 
 			if ( $post_id > 0 ) {
@@ -162,8 +178,12 @@ final class Block_Link {
 			return '';
 		}
 
-		if ( ! empty( $attrs['smartLinkUrl'] ) ) {
-			return (string) $attrs['smartLinkUrl'];
+		if ( Smart_Link_Destination::MEDIA === $destination ) {
+			return Smart_Link_Cover_Media::resolve_url( $attrs, $block, $instance );
+		}
+
+		if ( Smart_Link_Destination::CUSTOM === $destination || ! empty( $attrs['smartLinkUrl'] ) ) {
+			return (string) ( $attrs['smartLinkUrl'] ?? '' );
 		}
 
 		return '';

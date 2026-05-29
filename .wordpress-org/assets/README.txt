@@ -11,6 +11,10 @@ Banners: place source in assets/wporg-incoming/ as banner-772x250.png
 and banner-1544x500.png (same file OK), then run export-wporg-assets.py.
 Last banners generated from temp/banner.png (2026-05-18).
 
+Screenshots (WordPress.org Screenshots tab only — not in plugin ZIP):
+  screenshot-1.png … screenshot-10.png (1200×900 or 4:3 recommended)
+  Captions: readme.txt == Screenshots ==
+
 Playground preview (Try it in Playground on WordPress.org):
   assets/blueprints/blueprint.json
   After SVN upload, a plugin committer must set preview to "public" in the
