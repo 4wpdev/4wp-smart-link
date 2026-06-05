@@ -123,6 +123,14 @@ final class Bootstrap {
 			wp_enqueue_style( 'wp-block-image' );
 		}
 
+		// Load after core image styles so Cover lightbox trigger stays visible (opacity) and pinned (top/right).
+		wp_enqueue_style(
+			'forwp-smart-link-frontend',
+			FORWP_SMART_LINK_URL . 'assets/forwp-smart-link-frontend.css',
+			array( 'wp-block-image' ),
+			FORWP_SMART_LINK_VERSION
+		);
+
 		if ( ! function_exists( 'wp_register_script_module' ) ) {
 			return;
 		}

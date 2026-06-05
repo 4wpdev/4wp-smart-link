@@ -75,12 +75,12 @@
 	width: 20px;
 	height: 20px;
 	position: absolute;
-	top: 16px;
-	right: 16px;
-	left: auto;
+	top: 1rem;
+	left: 1rem;
+	right: auto;
 	bottom: auto;
 	padding: 0;
 	border-radius: 4px;
 	pointer-events: none;
-	z-index: 10;
+	z-index: 100;
 }

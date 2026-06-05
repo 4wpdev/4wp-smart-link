@@ -3,7 +3,7 @@
  *
  * @see wp-includes/js/dist/script-modules/interactivity/index.js (universalUnlock)
  */
-import { store } from '@wordpress/interactivity';
+import { store, getElement, getContext } from '@wordpress/interactivity';
 
 const universalUnlock =
 	'I acknowledge that using a private store means my plugin will inevitably break on the next store release.';
@@ -243,6 +243,21 @@ function isCoverLightboxSlide( meta ) {
 	);
 }
 
+/**
+ * @param {HTMLElement|null} img Cover background image.
+ * @return {boolean}
+ */
+function isCoverLightboxImage( img ) {
+	if ( ! img ) {
+		return false;
+	}
+
+	return (
+		img.classList.contains( 'wp-block-cover__image-background' ) ||
+		img.classList.contains( 'forwp-smart-link-cover-lightbox__ref' )
+	);
+}
+
 function runSetOverlayStyles( originalSetOverlayStyles ) {
 	if ( ! state?.overlayEnabled ) {
 		return;
@@ -288,5 +303,31 @@ if ( callbacks?.setOverlayStyles && state ) {
 
 	callbacks.setOverlayStyles = function forwpSetOverlayStyles() {
 		runSetOverlayStyles( originalSetOverlayStyles );
+	};
+}
+
+/*
+ * Cover: skip core setButtonStyles (wrong figure parent). Register imageRef only;
+ * trigger position/visibility is CSS-only in forwp-smart-link-frontend.css.
+ */
+if ( callbacks?.setButtonStyles && state ) {
+	const originalSetButtonStyles = callbacks.setButtonStyles;
+
+	callbacks.setButtonStyles = function forwpSetButtonStyles() {
+		const { ref } = getElement();
+
+		if ( ! isCoverLightboxImage( ref ) ) {
+			originalSetButtonStyles.call( this );
+			return;
+		}
+
+		const { imageId } = getContext();
+
+		if ( ! imageId || ! state.metadata?.[ imageId ] ) {
+			return;
+		}
+
+		state.metadata[ imageId ].imageRef = ref;
+		state.metadata[ imageId ].currentSrc = ref.currentSrc || ref.src;
 	};
 }

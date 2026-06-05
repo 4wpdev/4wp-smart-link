@@ -162,7 +162,7 @@ final class Smart_Link_Cover_Lightbox {
 	 */
 	private static function build_lightbox_trigger_wrapper( string $unique_image_id ): string {
 		return sprintf(
-			'<span class="wp-lightbox-container forwp-smart-link-cover-lightbox" data-wp-key="%1$s">%2$s</span>',
+			'<div class="wp-lightbox-container forwp-smart-link-cover-lightbox forwp-smart-link-cover-lightbox--overlay" data-wp-key="%1$s">%2$s</div>',
 			esc_attr( $unique_image_id ),
 			self::build_trigger_button_markup( $unique_image_id )
 		);
@@ -174,14 +174,12 @@ final class Smart_Link_Cover_Lightbox {
 	 */
 	private static function build_trigger_button_markup( string $unique_image_id ): string {
 		return '<button
-			class="lightbox-trigger"
+			class="lightbox-trigger forwp-smart-link-cover-lightbox__trigger"
 			type="button"
 			aria-haspopup="dialog"
 			data-wp-bind--aria-label="state.thisImage.triggerButtonAriaLabel"
 			data-wp-init="callbacks.initTriggerButton"
 			data-wp-on--click="actions.showLightbox"
-			data-wp-style--right="state.thisImage.buttonRight"
-			data-wp-style--top="state.thisImage.buttonTop"
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
 				<path fill="#fff" d="M2 0a2 2 0 0 0-2 2v2h1.5V2a.5.5 0 0 1 .5-.5h2V0H2Zm2 10.5H2a.5.5 0 0 1-.5-.5V8H0v2a2 2 0 0 0 2 2h2v-1.5ZM8 12v-1.5h2a.5.5 0 0 0 .5-.5V8H12v2a2 2 0 0 1-2 2H8Zm2-12a2 2 0 0 1 2 2v2h-1.5V2a.5.5 0 0 0-.5-.5H8V0h2Z" />
