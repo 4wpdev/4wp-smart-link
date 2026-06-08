@@ -9,11 +9,13 @@ const universalUnlock =
 	'I acknowledge that using a private store means my plugin will inevitably break on the next store release.';
 
 let state;
+let actions;
 let callbacks;
 
 try {
 	const imageStore = store( 'core/image', {}, { lock: universalUnlock } );
 	state = imageStore.state;
+	actions = imageStore.actions;
 	callbacks = imageStore.callbacks;
 } catch ( error ) {
 	// eslint-disable-next-line no-console
@@ -91,6 +93,34 @@ function findImageElementForId( imageId ) {
 	}
 
 	return null;
+}
+
+/**
+ * @param {string} imageId Metadata key.
+ */
+function ensureButtonRef( imageId ) {
+	if ( ! imageId || ! state?.metadata?.[ imageId ] ) {
+		return;
+	}
+
+	const entry = state.metadata[ imageId ];
+
+	if ( entry.buttonRef ) {
+		return;
+	}
+
+	const safeId = escapeImageId( imageId );
+	const keyed = document.querySelector( `[data-wp-key="${ safeId }"]` );
+
+	if ( ! keyed ) {
+		return;
+	}
+
+	const trigger = keyed.querySelector( '.lightbox-trigger' );
+
+	if ( trigger ) {
+		entry.buttonRef = trigger;
+	}
 }
 
 /**
@@ -335,5 +365,66 @@ if ( callbacks?.setButtonStyles && state ) {
 
 		state.metadata[ imageId ].imageRef = ref;
 		state.metadata[ imageId ].currentSrc = ref.currentSrc || ref.src;
+	};
+}
+
+/*
+ * After gallery navigation, buttonRef can be missing on Cover slides; core hideLightbox()
+ * then throws on focus() and never clears selectedImageId — handleScroll locks scroll.
+ */
+if ( actions?.hideLightbox && state ) {
+	actions.hideLightbox = function forwpHideLightbox() {
+		if ( ! state.overlayEnabled ) {
+			return;
+		}
+
+		state.overlayEnabled = false;
+
+		setTimeout( function () {
+			ensureButtonRef( state.selectedImageId );
+
+			const buttonRef = state.selectedImage?.buttonRef;
+
+			if ( buttonRef?.focus ) {
+				try {
+					buttonRef.focus( { preventScroll: true } );
+				} catch {
+					// Focus is optional; state reset below is required for scroll unlock.
+				}
+			}
+
+			state.selectedImageId = null;
+			state.selectedGalleryId = null;
+		}, 450 );
+	};
+}
+
+if ( actions?.handleScroll && state ) {
+	const originalHandleScroll = actions.handleScroll;
+
+	actions.handleScroll = function forwpHandleScroll() {
+		if ( ! state.overlayEnabled ) {
+			return;
+		}
+
+		originalHandleScroll.call( this );
+	};
+}
+
+if ( actions?.showNextImage && state ) {
+	const originalShowNextImage = actions.showNextImage;
+
+	actions.showNextImage = function forwpShowNextImage( event ) {
+		originalShowNextImage.call( this, event );
+		ensureButtonRef( state.selectedImageId );
+	};
+}
+
+if ( actions?.showPreviousImage && state ) {
+	const originalShowPreviousImage = actions.showPreviousImage;
+
+	actions.showPreviousImage = function forwpShowPreviousImage( event ) {
+		originalShowPreviousImage.call( this, event );
+		ensureButtonRef( state.selectedImageId );
 	};
 }
