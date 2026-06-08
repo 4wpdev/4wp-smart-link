@@ -172,11 +172,17 @@ function applyCenteredOverlayStyles( meta ) {
 	const parsedWidth = parseFloat( meta.targetWidth );
 	const parsedHeight = parseFloat( meta.targetHeight );
 	const naturalWidth =
-		imageRef?.naturalWidth ||
-		( ! Number.isNaN( parsedWidth ) ? parsedWidth : 1200 );
+		meta.targetWidth &&
+		meta.targetWidth !== 'none' &&
+		! Number.isNaN( parsedWidth )
+			? parsedWidth
+			: imageRef?.naturalWidth || 1200;
 	const naturalHeight =
-		imageRef?.naturalHeight ||
-		( ! Number.isNaN( parsedHeight ) ? parsedHeight : 800 );
+		meta.targetHeight &&
+		meta.targetHeight !== 'none' &&
+		! Number.isNaN( parsedHeight )
+			? parsedHeight
+			: imageRef?.naturalHeight || 800;
 
 	let imgMaxWidth = naturalWidth;
 	let imgMaxHeight = naturalHeight;
