@@ -547,7 +547,7 @@ function CoverSmartLinkUrlPopover( {
 	);
 }
 
-function SmartLinkToolbar( {
+function DefaultSmartLinkToolbar( {
 	blockName,
 	attributes,
 	setAttributes,
@@ -562,19 +562,6 @@ function SmartLinkToolbar( {
 
 	const isCover = blockName === 'core/cover';
 	const destination = resolveSmartLinkDestination( attributes );
-	const canUseCoverImageModes =
-		isCover && coverCanUseImageLinkModes( attributes );
-
-	if ( isCover && canUseCoverImageModes ) {
-		return (
-			<CoverSmartLinkUrlPopover
-				attributes={ attributes }
-				setAttributes={ setAttributes }
-				canUsePostLink={ canUsePostLink }
-			/>
-		);
-	}
-
 	const [ isLinkControlOpen, setLinkControlOpen ] = useState( false );
 	const toggleRef = useRef( null );
 
@@ -746,6 +733,36 @@ function SmartLinkToolbar( {
 	);
 }
 
+function SmartLinkToolbar( {
+	blockName,
+	attributes,
+	setAttributes,
+	canUsePostLink,
+} ) {
+	const isCover = blockName === 'core/cover';
+	const canUseCoverImageModes =
+		isCover && coverCanUseImageLinkModes( attributes );
+
+	if ( isCover && canUseCoverImageModes ) {
+		return (
+			<CoverSmartLinkUrlPopover
+				attributes={ attributes }
+				setAttributes={ setAttributes }
+				canUsePostLink={ canUsePostLink }
+			/>
+		);
+	}
+
+	return (
+		<DefaultSmartLinkToolbar
+			blockName={ blockName }
+			attributes={ attributes }
+			setAttributes={ setAttributes }
+			canUsePostLink={ canUsePostLink }
+		/>
+	);
+}
+
 const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 	return ( props ) => {
 		const isSupported = isSupportedBlock( props.name );
@@ -775,7 +792,8 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 			isCover &&
 			coverCanUseImageLinkModes( props.attributes || {} );
 		const coverMediaUrl = useCoverBackgroundMediaUrl(
-			isCover ? props.attributes : {}
+			isCover ? props.attributes : {},
+			isCover ? props.context : {}
 		);
 
 		useEffect( () => {
@@ -791,6 +809,24 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 			props.attributes?.smartLinkDestination,
 			props.attributes?.smartLinkUrl,
 			props.attributes?.smartLinkToCurrentPost,
+			props.setAttributes,
+		] );
+
+		useEffect( () => {
+			if ( ! isSupported ) {
+				return;
+			}
+
+			if ( smartLinkToCurrentPost && ! canUsePostLink ) {
+				props.setAttributes( {
+					smartLinkToCurrentPost: false,
+					smartLinkDestination: '',
+				} );
+			}
+		}, [
+			isSupported,
+			smartLinkToCurrentPost,
+			canUsePostLink,
 			props.setAttributes,
 		] );
 
@@ -829,15 +865,6 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 		const panelTitle =
 			BLOCK_PANEL_TITLES[ props.name ] ||
 			__( 'Smart Link', '4wp-smart-link' );
-
-		useEffect( () => {
-			if ( smartLinkToCurrentPost && ! canUsePostLink ) {
-				props.setAttributes( {
-					smartLinkToCurrentPost: false,
-					smartLinkDestination: '',
-				} );
-			}
-		}, [ smartLinkToCurrentPost, canUsePostLink, props.setAttributes ] );
 
 		const clearInspectorCustomLink = () => {
 			const destination = resolveSmartLinkDestination(

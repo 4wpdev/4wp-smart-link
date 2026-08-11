@@ -3,7 +3,8 @@
  */
 
 import { useSelect } from '@wordpress/data';
-import { store as coreStore } from '@wordpress/core-data';
+import { useEntityProp, store as coreStore } from '@wordpress/core-data';
+import { store as editorStore } from '@wordpress/editor';
 
 /**
  * @param {Record<string, unknown>} coverAttributes Cover block attributes.
@@ -42,11 +43,48 @@ export function coverCanUseImageLinkModes( coverAttributes ) {
 /**
  * Resolved background image URL for editor previews (matches PHP resolver intent).
  *
+ * Query Loop Covers pass `postId` / `postType` via block context (same as core/cover).
+ *
  * @param {Record<string, unknown>} coverAttributes Cover block attributes.
+ * @param {Record<string, unknown>} blockContext    Block edit context (postId, postType).
  * @return {string}
  */
-export function useCoverBackgroundMediaUrl( coverAttributes ) {
+export function useCoverBackgroundMediaUrl(
+	coverAttributes,
+	blockContext = {}
+) {
 	const { id, url, useFeaturedImage, backgroundType } = coverAttributes || {};
+	const { postId: contextPostId, postType: contextPostType } =
+		blockContext || {};
+
+	const resolvedPostType = useSelect(
+		( select ) => {
+			if ( contextPostType && contextPostId ) {
+				return contextPostType;
+			}
+
+			return select( editorStore ).getCurrentPostType();
+		},
+		[ contextPostType, contextPostId ]
+	);
+
+	const resolvedPostId = useSelect(
+		( select ) => {
+			if ( contextPostId ) {
+				return contextPostId;
+			}
+
+			return select( editorStore ).getCurrentPostId();
+		},
+		[ contextPostId, contextPostType ]
+	);
+
+	const [ featuredMediaId ] = useEntityProp(
+		'postType',
+		resolvedPostType,
+		'featured_media',
+		resolvedPostId
+	);
 
 	return useSelect(
 		( select ) => {
@@ -55,26 +93,13 @@ export function useCoverBackgroundMediaUrl( coverAttributes ) {
 			}
 
 			if ( useFeaturedImage ) {
-				const postType = select( coreStore ).getCurrentPostType();
-				const postId = select( coreStore ).getCurrentPostId();
-
-				if ( ! postType || ! postId ) {
-					return '';
-				}
-
-				const record = select( coreStore ).getEditedEntityRecord(
-					'postType',
-					postType,
-					postId
-				);
-				const featuredId = record?.featured_media;
-
-				if ( ! featuredId ) {
+				if ( ! featuredMediaId ) {
 					return '';
 				}
 
 				return (
-					select( coreStore ).getMedia( featuredId )?.source_url || ''
+					select( coreStore ).getMedia( featuredMediaId )?.source_url ||
+					''
 				);
 			}
 
@@ -84,6 +109,6 @@ export function useCoverBackgroundMediaUrl( coverAttributes ) {
 
 			return typeof url === 'string' ? url : '';
 		},
-		[ id, url, useFeaturedImage, backgroundType ]
+		[ id, url, useFeaturedImage, backgroundType, featuredMediaId ]
 	);
 }
