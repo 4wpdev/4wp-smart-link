@@ -20,9 +20,10 @@ final class Block_Link {
 	 * @var array<string, string>
 	 */
 	private const BLOCK_MODIFIERS = array(
-		'core/cover'  => 'cover',
-		'core/group'  => 'group',
-		'core/column' => 'column',
+		'core/cover'               => 'cover',
+		'core/group'               => 'group',
+		'core/column'              => 'column',
+		'core/post-featured-image' => 'post-featured-image',
 	);
 
 	/**
@@ -74,17 +75,31 @@ final class Block_Link {
 		$attrs = self::get_block_attrs( $block, $instance );
 
 		if ( Smart_Link_Destination::is_lightbox_mode( $attrs ) ) {
-			if ( 'cover' !== $modifier ) {
-				return is_string( $block_content ) ? $block_content : '';
+			if ( 'cover' === $modifier ) {
+				$block_content = is_string( $block_content ) ? trim( $block_content ) : '';
+
+				if ( '' === $block_content ) {
+					return '';
+				}
+
+				return Smart_Link_Cover_Lightbox::render( $block_content, $attrs, $block, $instance );
 			}
 
-			$block_content = is_string( $block_content ) ? trim( $block_content ) : '';
+			if ( 'post-featured-image' === $modifier ) {
+				$block_content = is_string( $block_content ) ? trim( $block_content ) : '';
 
-			if ( '' === $block_content ) {
-				return '';
+				if ( '' === $block_content ) {
+					return '';
+				}
+
+				return Smart_Link_Featured_Image_Lightbox::render( $block_content, $attrs, $block, $instance );
 			}
 
-			return Smart_Link_Cover_Lightbox::render( $block_content, $attrs, $block, $instance );
+			return is_string( $block_content ) ? $block_content : '';
+		}
+
+		if ( 'post-featured-image' === $modifier ) {
+			return is_string( $block_content ) ? $block_content : '';
 		}
 
 		$url = self::sanitize_smart_link_url( self::resolve_url( $attrs, $block, $instance ) );

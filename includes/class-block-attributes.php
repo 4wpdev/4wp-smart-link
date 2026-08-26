@@ -63,6 +63,17 @@ final class Block_Attributes {
 		'core/cover',
 		'core/group',
 		'core/column',
+		'core/post-featured-image',
+	);
+
+	/**
+	 * Blocks that support smartLinkLightbox (Cover + Post Featured Image).
+	 *
+	 * @var list<string>
+	 */
+	private const LIGHTBOX_BLOCKS = array(
+		'core/cover',
+		'core/post-featured-image',
 	);
 
 	/**
@@ -88,7 +99,7 @@ final class Block_Attributes {
 
 		$extra = self::SMART_LINK_ATTRIBUTES;
 
-		if ( 'core/cover' === $block_name ) {
+		if ( in_array( $block_name, self::LIGHTBOX_BLOCKS, true ) ) {
 			$extra = array_merge( $extra, self::COVER_SMART_LINK_ATTRIBUTES );
 		}
 

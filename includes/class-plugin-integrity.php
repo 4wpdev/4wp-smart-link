@@ -28,6 +28,7 @@ final class Plugin_Integrity {
 			'includes/class-smart-link-cover-media.php',
 			'includes/class-smart-link-page-lightbox-gallery.php',
 			'includes/class-smart-link-cover-lightbox.php',
+			'includes/class-smart-link-featured-image-lightbox.php',
 			'includes/class-block-attributes.php',
 			'includes/class-block-inner-links.php',
 			'includes/class-block-link.php',

@@ -41,6 +41,9 @@ import {
 	useCoverBackgroundMediaUrl,
 } from './cover-smart-link';
 import { CoverLightboxEditorIndicator } from './cover-lightbox-editor-indicator';
+import { FeaturedImageLightboxEditorIndicator } from './featured-image-lightbox-editor-indicator';
+import { FeaturedImageLightboxToolbar } from './featured-image-lightbox-toolbar';
+import { usePostFeaturedImageCanUseLightbox } from './post-featured-image-smart-link';
 import {
 	SMART_LINK_BASE_ATTRIBUTES,
 	SMART_LINK_COVER_ATTRIBUTES,
@@ -58,12 +61,16 @@ const SUPPORTED_BLOCKS = [
 	'core/cover',
 	'core/group',
 	'core/column',
+	'core/post-featured-image',
 ];
+
+const LIGHTBOX_ONLY_BLOCKS = [ 'core/post-featured-image' ];
 
 const BLOCK_PANEL_TITLES = {
 	'core/cover': __( 'Cover Link', '4wp-smart-link' ),
 	'core/group': __( 'Group Link', '4wp-smart-link' ),
 	'core/column': __( 'Column Link', '4wp-smart-link' ),
+	'core/post-featured-image': __( 'Featured Image Link', '4wp-smart-link' ),
 };
 
 const NOFOLLOW_REL = 'nofollow';
@@ -242,13 +249,17 @@ function mergeNofollowIntoRel( rel, nofollow ) {
 	return without.join( ' ' );
 }
 
+function isLightboxOnlyBlock( name ) {
+	return LIGHTBOX_ONLY_BLOCKS.includes( name );
+}
+
 function addSmartLinkAttributes( settings, name ) {
 	if ( ! isSupportedBlock( name ) ) {
 		return settings;
 	}
 
 	const smartLinkAttributes =
-		name === 'core/cover'
+		name === 'core/cover' || name === 'core/post-featured-image'
 			? {
 					...SMART_LINK_BASE_ATTRIBUTES,
 					...SMART_LINK_COVER_ATTRIBUTES,
@@ -740,8 +751,18 @@ function SmartLinkToolbar( {
 	canUsePostLink,
 } ) {
 	const isCover = blockName === 'core/cover';
+	const isFeaturedImage = blockName === 'core/post-featured-image';
 	const canUseCoverImageModes =
 		isCover && coverCanUseImageLinkModes( attributes );
+
+	if ( isFeaturedImage ) {
+		return (
+			<FeaturedImageLightboxToolbar
+				attributes={ attributes }
+				setAttributes={ setAttributes }
+			/>
+		);
+	}
 
 	if ( isCover && canUseCoverImageModes ) {
 		return (
@@ -787,10 +808,14 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 			props.attributes || {}
 		);
 		const isCover = props.name === 'core/cover';
+		const isFeaturedImage = props.name === 'core/post-featured-image';
 		const canUsePostLink = useIsInsidePostTemplate( props.clientId );
 		const canUseCoverImageModes =
 			isCover &&
 			coverCanUseImageLinkModes( props.attributes || {} );
+		const canUseFeaturedImageLightbox = usePostFeaturedImageCanUseLightbox(
+			props.context || {}
+		);
 		const coverMediaUrl = useCoverBackgroundMediaUrl(
 			isCover ? props.attributes : {},
 			isCover ? props.context : {}
@@ -889,6 +914,11 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 			canUseCoverImageModes &&
 			smartLinkDestination === SMART_LINK_DESTINATION.LIGHTBOX;
 
+		const showFeaturedImageLightboxIndicator =
+			isFeaturedImage &&
+			canUseFeaturedImageLightbox &&
+			smartLinkDestination === SMART_LINK_DESTINATION.LIGHTBOX;
+
 		const coverLightboxSyncKey = [
 			props.attributes?.id,
 			props.attributes?.url,
@@ -896,6 +926,13 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 			props.attributes?.dimRatio,
 			props.attributes?.minHeight,
 			props.attributes?.minHeightUnit,
+		].join( '|' );
+
+		const featuredImageLightboxSyncKey = [
+			props.context?.postId,
+			props.attributes?.sizeSlug,
+			props.attributes?.width,
+			props.attributes?.height,
 		].join( '|' );
 
 		return (
@@ -906,6 +943,13 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 						clientId={ props.clientId }
 						enabled={ showCoverLightboxIndicator }
 						syncKey={ coverLightboxSyncKey }
+					/>
+				) }
+				{ showFeaturedImageLightboxIndicator && (
+					<FeaturedImageLightboxEditorIndicator
+						clientId={ props.clientId }
+						enabled={ showFeaturedImageLightboxIndicator }
+						syncKey={ featuredImageLightboxSyncKey }
 					/>
 				) }
 				{ showConflictNotice && (
@@ -937,7 +981,7 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 								) }
 							</Notice>
 						) }
-						{ isCover &&
+						{ ( isCover || isFeaturedImage ) &&
 							smartLinkDestination ===
 								SMART_LINK_DESTINATION.LIGHTBOX && (
 								<>
@@ -946,10 +990,15 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 										status="info"
 										isDismissible={ false }
 									>
-										{ __(
-											'Enlarge on click adds a lightbox button on the front end (like the Image block). The cover area itself is not a link.',
-											'4wp-smart-link'
-										) }
+										{ isFeaturedImage
+											? __(
+													'Enlarge on click adds a lightbox button on the front end (like the Image block). The featured image itself is not a post link while this mode is on.',
+													'4wp-smart-link'
+											  )
+											: __(
+													'Enlarge on click adds a lightbox button on the front end (like the Image block). The cover area itself is not a link.',
+													'4wp-smart-link'
+											  ) }
 									</Notice>
 									<ToggleControl
 										__nextHasNoMarginBottom
@@ -1001,6 +1050,14 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 							<p className="forwp-smart-link-panel__help">
 								{ __(
 									'Link to image file and Enlarge on click require a cover background image.',
+									'4wp-smart-link'
+								) }
+							</p>
+						) }
+						{ isFeaturedImage && ! canUseFeaturedImageLightbox && (
+							<p className="forwp-smart-link-panel__help">
+								{ __(
+									'Enlarge on click requires a featured image on the current post in this template.',
 									'4wp-smart-link'
 								) }
 							</p>
@@ -1060,7 +1117,7 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 									</Button>
 								</>
 							) }
-						{ canUsePostLink ? (
+						{ ! isLightboxOnlyBlock( props.name ) && canUsePostLink ? (
 							<ToggleControl
 								__nextHasNoMarginBottom
 								label={ __(
@@ -1081,15 +1138,16 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 									)
 								}
 							/>
-						) : (
+						) : ! isLightboxOnlyBlock( props.name ) ? (
 							<p className="forwp-smart-link-panel__help">
 								{ __(
 									'Post Link is available only when this block is inside a Query Loop post template.',
 									'4wp-smart-link'
 								) }
 							</p>
-						) }
-						{ smartLinkDestination === SMART_LINK_DESTINATION.POST &&
+						) : null }
+						{ ! isLightboxOnlyBlock( props.name ) &&
+						smartLinkDestination === SMART_LINK_DESTINATION.POST &&
 						canUsePostLink ? (
 							<>
 								<CheckboxControl
@@ -1125,10 +1183,9 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 									}
 								/>
 							</>
-						) : smartLinkDestination ===
-								SMART_LINK_DESTINATION.MEDIA ||
-						  smartLinkDestination ===
-								SMART_LINK_DESTINATION.LIGHTBOX ? null : (
+						) : ! isLightboxOnlyBlock( props.name ) &&
+						  smartLinkDestination !== SMART_LINK_DESTINATION.MEDIA &&
+						  smartLinkDestination !== SMART_LINK_DESTINATION.LIGHTBOX ? (
 							<div className="forwp-smart-link-panel__custom">
 								<URLInput
 									label={ __( 'URL', '4wp-smart-link' ) }
@@ -1193,11 +1250,12 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 									</Button>
 								) }
 							</div>
-						) }
+						) : null }
 					</PanelBody>
 				</InspectorControls>
 				<InspectorControls group="advanced">
-					<TextControl
+					{ ! isLightboxOnlyBlock( props.name ) && (
+						<TextControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Link relation', '4wp-smart-link' ) }
@@ -1206,6 +1264,7 @@ const withSmartLinkControls = createHigherOrderComponent( ( BlockEdit ) => {
 							props.setAttributes( { smartLinkRel: value || '' } )
 						}
 					/>
+					) }
 				</InspectorControls>
 			</Fragment>
 		);

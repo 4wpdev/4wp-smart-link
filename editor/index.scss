@@ -84,3 +84,53 @@
 	pointer-events: none;
 	z-index: 100;
 }
+
+/* Post Featured Image: Enlarge on click — editor canvas. */
+.editor-styles-wrapper
+	.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox,
+.block-editor-block-list__layout
+	.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox {
+	position: relative;
+}
+
+.editor-styles-wrapper
+	.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
+	> .forwp-smart-link-featured-image-lightbox-editor,
+.block-editor-block-list__layout
+	.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
+	> .forwp-smart-link-featured-image-lightbox-editor {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	pointer-events: none;
+}
+
+.editor-styles-wrapper
+	.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
+	.lightbox-trigger,
+.block-editor-block-list__layout
+	.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
+	.lightbox-trigger {
+	opacity: 1;
+	border: none;
+	background-color: rgba(90, 90, 90, 0.25);
+	backdrop-filter: blur(16px) saturate(180%);
+	cursor: default;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 20px;
+	height: 20px;
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	right: auto;
+	bottom: auto;
+	padding: 0;
+	border-radius: 4px;
+	pointer-events: none;
+	z-index: 100;
+}
