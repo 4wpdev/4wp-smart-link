@@ -51,12 +51,13 @@ final class Smart_Link_Featured_Image_Lightbox {
 			return $block_content;
 		}
 
-		if ( ! ( $instance instanceof \WP_Block && ! empty( $instance->context['galleryId'] ) ) ) {
-			$updated = Smart_Link_Page_Lightbox_Gallery::wrap_gallery_context(
-				$updated,
-				Smart_Link_Page_Lightbox_Gallery::resolve_gallery_id( $instance, $attrs )
-			);
-		}
+		/*
+		 * Do not wrap Featured Image in data-wp-interactive="core/gallery".
+		 * Nested interactive regions prevent core/image data-wp-init from setting
+		 * imageRef/buttonRef, so showLightbox returns early. Gallery id/order stay
+		 * in core/image metadata for navigation when selectedGalleryId is set from
+		 * other page-gallery participants (Cover / core Image wraps).
+		 */
 
 		/**
 		 * Filter Featured Image HTML after lightbox injection.
@@ -111,8 +112,11 @@ final class Smart_Link_Featured_Image_Lightbox {
 			return null;
 		}
 
+		// Match core/image lightbox: figure is the interactive wp-lightbox-container.
 		$processor->add_class( 'forwp-smart-link-featured-image-has-lightbox' );
+		$processor->add_class( 'wp-lightbox-container' );
 		$processor->set_attribute( 'data-wp-interactive', 'core/image' );
+		$processor->set_attribute( 'data-wp-key', $unique_image_id );
 		$processor->set_attribute(
 			'data-wp-context',
 			wp_json_encode(
@@ -136,6 +140,10 @@ final class Smart_Link_Featured_Image_Lightbox {
 			$processor->set_attribute( 'data-wp-on--pointerenter', 'actions.preloadImageWithDelay' );
 			$processor->set_attribute( 'data-wp-on--pointerdown', 'actions.preloadImage' );
 			$processor->set_attribute( 'data-wp-on--pointerleave', 'actions.cancelPreload' );
+			// Core: click the image itself (not only the corner button).
+			$processor->set_attribute( 'data-wp-on--click', 'actions.showLightbox' );
+			$processor->set_attribute( 'data-wp-class--hide', 'state.isContentHidden' );
+			$processor->set_attribute( 'data-wp-class--show', 'state.isContentVisible' );
 			break;
 		}
 
@@ -143,23 +151,16 @@ final class Smart_Link_Featured_Image_Lightbox {
 			return null;
 		}
 
-		$html     = $processor->get_updated_html();
-		$wrapper  = self::build_lightbox_trigger_wrapper( $unique_image_id );
-		$inserted = self::insert_before_figure_close( $html, $wrapper );
+		$html = $processor->get_updated_html();
 
-		return $inserted === $html ? null : $inserted;
-	}
+		if ( ! preg_match( '/<img[^>]+>/i', $html, $img_match ) ) {
+			return null;
+		}
 
-	/**
-	 * @param string $unique_image_id Context image id.
-	 * @return string
-	 */
-	private static function build_lightbox_trigger_wrapper( string $unique_image_id ): string {
-		return sprintf(
-			'<div class="wp-lightbox-container forwp-smart-link-featured-image-lightbox forwp-smart-link-featured-image-lightbox--overlay" data-wp-key="%1$s">%2$s</div>',
-			esc_attr( $unique_image_id ),
-			self::build_trigger_button_markup()
-		);
+		$button = $img_match[0] . self::build_trigger_button_markup();
+		$updated = preg_replace( '/<img[^>]+>/i', $button, $html, 1 );
+
+		return is_string( $updated ) ? $updated : null;
 	}
 
 	/**
@@ -173,6 +174,8 @@ final class Smart_Link_Featured_Image_Lightbox {
 			data-wp-bind--aria-label="state.thisImage.triggerButtonAriaLabel"
 			data-wp-init="callbacks.initTriggerButton"
 			data-wp-on--click="actions.showLightbox"
+			data-wp-style--right="state.thisImage.buttonRight"
+			data-wp-style--top="state.thisImage.buttonTop"
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
 				<path fill="#fff" d="M2 0a2 2 0 0 0-2 2v2h1.5V2a.5.5 0 0 1 .5-.5h2V0H2Zm2 10.5H2a.5.5 0 0 1-.5-.5V8H0v2a2 2 0 0 0 2 2h2v-1.5ZM8 12v-1.5h2a.5.5 0 0 0 .5-.5V8H12v2a2 2 0 0 1-2 2H8Zm2-12a2 2 0 0 1 2 2v2h-1.5V2a.5.5 0 0 0-.5-.5H8V0h2Z" />
@@ -278,7 +281,7 @@ final class Smart_Link_Featured_Image_Lightbox {
 			'galleryId'                => $gallery_id,
 			'customAriaLabel'          => $custom_aria_label,
 			'navigationButtonType'     => $navigation,
-			'triggerButtonAriaLabel' => null,
+			'triggerButtonAriaLabel'    => __( 'Enlarge', '4wp-smart-link' ),
 		);
 
 		if ( null !== $order ) {
@@ -311,44 +314,5 @@ final class Smart_Link_Featured_Image_Lightbox {
 			add_action( 'wp_footer', 'block_core_image_print_lightbox_overlay', 5 );
 			self::$overlay_scheduled = true;
 		}
-	}
-
-	/**
-	 * @param string $html     Figure HTML.
-	 * @param string $fragment Lightbox markup.
-	 * @return string
-	 */
-	private static function insert_before_figure_close( string $html, string $fragment ): string {
-		if ( ! preg_match(
-			'/<figure\b[^>]*\bwp-block-post-featured-image\b[^>]*>/i',
-			$html,
-			$open,
-			PREG_OFFSET_CAPTURE
-		) ) {
-			return $html . $fragment;
-		}
-
-		$start  = $open[0][1] + strlen( $open[0][0] );
-		$depth  = 1;
-		$pos    = $start;
-		$length = strlen( $html );
-		$insert = $length;
-
-		while ( $pos < $length && $depth > 0 ) {
-			if ( ! preg_match( '/<\/?figure\b/i', $html, $tag, PREG_OFFSET_CAPTURE, $pos ) ) {
-				break;
-			}
-
-			$is_close = '/' === $html[ $tag[0][1] + 1 ];
-			$depth   += $is_close ? -1 : 1;
-			$pos      = $tag[0][1] + strlen( $tag[0][0] );
-
-			if ( 0 === $depth ) {
-				$insert = $tag[0][1];
-				break;
-			}
-		}
-
-		return substr( $html, 0, $insert ) . $fragment . substr( $html, $insert );
 	}
 }

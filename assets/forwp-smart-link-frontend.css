@@ -148,32 +148,14 @@
 }
 
 .wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
-	> .forwp-smart-link-featured-image-lightbox,
-.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
-	> .wp-lightbox-container.forwp-smart-link-featured-image-lightbox {
-	position: absolute;
-	inset: 0;
-	z-index: 10;
-	display: block !important;
-	box-sizing: border-box;
-	width: 100%;
-	height: 100%;
-	margin: 0;
-	padding: 0;
-	overflow: visible;
-	pointer-events: none;
+	> img.forwp-smart-link-featured-image-lightbox__ref {
+	cursor: zoom-in;
 }
 
+/* Prefer core .wp-lightbox-container button positioning; keep trigger clickable. */
 .wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
-	.forwp-smart-link-featured-image-lightbox__trigger,
-.forwp-smart-link-featured-image-lightbox .lightbox-trigger {
-	position: absolute;
-	top: 1rem;
-	left: 1rem;
-	right: auto;
-	bottom: auto;
-	margin: 0;
-	opacity: 1 !important;
-	pointer-events: auto;
+	> .lightbox-trigger,
+.wp-block-post-featured-image.forwp-smart-link-featured-image-has-lightbox
+	> .forwp-smart-link-featured-image-lightbox__trigger {
 	z-index: 100;
 }

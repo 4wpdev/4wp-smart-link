@@ -1,20 +1,20 @@
 === 4WP Smart Link ===
 Contributors: 4wpdev, anatolikkk
-Tags: gutenberg, query loop, clickable cover, group block, block link
+Tags: gutenberg, query loop, clickable cover, block link, query loop link
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.3
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Make Cover, Group, and Column blocks fully clickable in Gutenberg and Query Loop—no wrapper block, no custom code.
+Add a clickable block link to Cover, Group, and Column in Gutenberg and Query Loop—no wrapper block, no custom code.
 
 == Description ==
 
-**4WP Smart Link** makes **Cover**, **Group**, and **Column** blocks fully clickable on the front end—without custom CSS, without wrapper blocks, and without breaking nested links inside the block.
+**4WP Smart Link** turns **Cover**, **Group**, and **Column** into a clickable block link on the front end—without custom CSS, without wrapper blocks, and without breaking nested links inside the block. A clickable Cover, a linked Group panel, or a clickable Column card each becomes one tap target from a single toolbar toggle.
 
-Add it to a **Query Loop** post template and the whole card becomes one tap target that opens the post, while the post title, categories, tags, and buttons keep working independently.
+Add it to a **Query Loop** post template and turn every card into a query loop link—the whole card opens the post in one tap, while the post title, categories, tags, and buttons keep working independently.
 
 Learn more, compare approaches, and see use cases on the [4WP Smart Link plugin page](https://4wp.dev/plugin/4wp-smart-link/).
 
@@ -111,7 +111,7 @@ Yes. On a **Cover** block, set the background to **Featured image**, then enable
 
 = Can I use Enlarge on click on the Featured Image block (not Cover)? =
 
-Yes, as of **1.2.3**. Select **Featured Image** in a Query Loop post template → **Smart Link** → **Enlarge on click**. Optional **Include in page lightbox gallery** appears in the sidebar, same as Cover.
+Yes, as of **1.2.3** (front-end open fixed in **1.3.0**). Select **Featured Image** in a Query Loop or single post template → **Smart Link** → **Enlarge on click**. Optional **Include in page lightbox gallery** appears in the sidebar, same as Cover.
 
 = Does this replace native Cover linking? =
 
@@ -171,6 +171,13 @@ Source and issues: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smar
 
 == Changelog ==
 
+== Changelog ==
+
+= 1.3.0 =
+* Fix: **Featured Image** Enlarge on click opens the core lightbox on single post templates (image click and expand button).
+* Featured Image lightbox markup aligned with core Image (`wp-lightbox-container`, click on image).
+* Lightbox gallery script hydrates `imageRef` before `showLightbox` when init did not set it.
+
 = 1.2.3 =
 * **Featured Image** block: **Enlarge on click** (core lightbox) in Query Loop post templates via Smart Link toolbar.
 * Sidebar: **Include in page lightbox gallery** for Featured Image (same as Cover).
@@ -205,6 +212,9 @@ Source and issues: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smar
 * Front-end styles for clear keyboard focus on the link wrapper.
 
 == Upgrade Notice ==
+
+= 1.3.0 =
+Fixes Featured Image Enlarge on click on single templates so the lightbox opens when you click the image or expand control.
 
 = 1.2.3 =
 Featured Image lightbox in Query Loop templates. Reinstall from WordPress.org if Cover + Featured image in Query Loop still crashes the editor (incomplete prior deploy).

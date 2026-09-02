@@ -1,6 +1,6 @@
 {
 	"name": "4wp-smart-link",
-	"version": "1.2.3",
+	"version": "1.3.0",
 	"private": true,
 	"description": "Smart Link editor build",
 	"scripts": {

@@ -48,7 +48,9 @@ function findImageElementForId( imageId ) {
 
 		if ( scoped ) {
 			const fromKey =
+				scoped.querySelector( 'img.forwp-smart-link-featured-image-lightbox__ref' ) ||
 				scoped.querySelector( 'img.wp-block-cover__image-background' ) ||
+				scoped.querySelector( 'img.forwp-smart-link-cover-lightbox__ref' ) ||
 				scoped.querySelector( 'figure.wp-lightbox-container img' ) ||
 				scoped.querySelector( 'img' );
 
@@ -82,7 +84,9 @@ function findImageElementForId( imageId ) {
 		}
 
 		const img =
+			region.querySelector( 'img.forwp-smart-link-featured-image-lightbox__ref' ) ||
 			region.querySelector( 'img.wp-block-cover__image-background' ) ||
+			region.querySelector( 'img.forwp-smart-link-cover-lightbox__ref' ) ||
 			region.querySelector( 'figure.wp-lightbox-container img' ) ||
 			region.querySelector( '.wp-lightbox-container img' ) ||
 			region.querySelector( 'img' );
@@ -345,6 +349,7 @@ if ( callbacks?.setOverlayStyles && state ) {
 /*
  * Cover: skip core setButtonStyles (wrong figure parent). Register imageRef only;
  * trigger position/visibility is CSS-only in forwp-smart-link-frontend.css.
+ * Featured Image uses core-compatible markup, so keep core setButtonStyles.
  */
 if ( callbacks?.setButtonStyles && state ) {
 	const originalSetButtonStyles = callbacks.setButtonStyles;

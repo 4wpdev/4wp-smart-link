@@ -29,19 +29,17 @@ function getFeaturedImageElement( clientId ) {
  */
 function mountLightboxIndicator( figureEl ) {
 	figureEl.classList.add( 'forwp-smart-link-featured-image-has-lightbox' );
+	figureEl.classList.add( 'wp-lightbox-container' );
 
 	if ( figureEl.querySelector( `[${ MARKER }="true"]` ) ) {
 		return;
 	}
 
-	const container = document.createElement( 'span' );
-	container.className =
-		'wp-lightbox-container forwp-smart-link-featured-image-lightbox forwp-smart-link-featured-image-lightbox-editor';
-	container.setAttribute( MARKER, 'true' );
-
 	const button = document.createElement( 'button' );
 	button.type = 'button';
-	button.className = 'lightbox-trigger';
+	button.className =
+		'lightbox-trigger forwp-smart-link-featured-image-lightbox__trigger';
+	button.setAttribute( MARKER, 'true' );
 	button.setAttribute( 'aria-haspopup', 'dialog' );
 	button.setAttribute(
 		'aria-label',
@@ -50,8 +48,7 @@ function mountLightboxIndicator( figureEl ) {
 	button.tabIndex = -1;
 	button.innerHTML = LIGHTBOX_TRIGGER_SVG;
 
-	container.appendChild( button );
-	figureEl.appendChild( container );
+	figureEl.appendChild( button );
 }
 
 /**
@@ -63,6 +60,7 @@ function unmountLightboxIndicator( figureEl ) {
 	}
 
 	figureEl.classList.remove( 'forwp-smart-link-featured-image-has-lightbox' );
+	figureEl.classList.remove( 'wp-lightbox-container' );
 	figureEl
 		.querySelectorAll( `[${ MARKER }="true"]` )
 		.forEach( ( node ) => node.remove() );
