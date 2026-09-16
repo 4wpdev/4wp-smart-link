@@ -4,7 +4,7 @@ Tags: gutenberg, query loop, clickable cover, block link, query loop link
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,10 @@ If you added a **Post Title**, **buttons**, or **terms** inside the block, the p
 On **Cover** blocks with an image background you can choose **Enlarge on click**. The same option is available on the **Featured Image** block in Query Loop post templates. This uses the **WordPress core lightbox** (the same behaviour as the Image block): a small expand control opens the full image; the block area itself is not a whole-block link.
 
 In the sidebar you can turn on **Include in page lightbox gallery** so visitors can move to other enlarged images on the same page (Cover and Image blocks that use the core lightbox). Turn it off on a single Cover to open only that image.
+
+= Smart Image Gallery (Document sidebar) =
+
+When a post or page has **Image** blocks in the content, the editor **Document** sidebar shows **Smart Image Gallery**: image count, how many already use Enlarge, and how many join the page gallery. Use **Enlarge for all** to enable core lightbox on every Image in the body, and **Organize in lightbox** so those images (plus Cover / Featured Image that join the gallery) share prev/next in one lightbox sequence. Image captions appear under the enlarged photo when present.
 
 = Why 4WP Smart Link? =
 
@@ -100,6 +104,14 @@ Select a **Cover** with an image background (uploaded image, external URL, or **
 = What is the page lightbox gallery? =
 
 When **Enlarge on click** is enabled on a Cover or Featured Image block, the sidebar offers **Include in page lightbox gallery**. When enabled, visitors can use prev/next controls to move between enlarged images on the same page (Cover, Featured Image, and Image blocks using the core lightbox). Disable it on one block to open only that image in isolation.
+
+= What is Smart Image Gallery in the Document sidebar? =
+
+On posts and pages that contain **Image** blocks, open the **Document** sidebar panel **Smart Image Gallery**. **Enlarge for all** turns on the core lightbox for every body Image. **Organize in lightbox** puts those images into one page gallery so visitors can move between them (and any Cover / Featured Image that also joins the gallery). The panel is hidden when the content has no Image blocks.
+
+= Do image captions show in the lightbox? =
+
+Yes, as of **1.4.0**. If an Image block has a caption, that text appears under the enlarged photo in the lightbox. Images without a caption stay caption-free.
 
 = Can I link a Cover to the image file instead of the post? =
 
@@ -161,7 +173,7 @@ Visit [4wp.dev/plugin/4wp-smart-link/](https://4wp.dev/plugin/4wp-smart-link/) f
 
 **Host mode** (inner links present): uses `data-forwp-smart-link-url` and `assets/forwp-smart-link-frontend.js` so link-in-link HTML is never output; inner anchors stay separate.
 
-**Cover lightbox**: `smartLinkDestination` value `lightbox` and `smartLinkLightbox` attributes; optional page gallery via `assets/forwp-smart-link-lightbox-gallery.js` and core Image block lightbox modules.
+**Cover lightbox**: `smartLinkDestination` value `lightbox` and `smartLinkLightbox` attributes; optional page gallery via `assets/forwp-smart-link-lightbox-gallery.js` and core Image block lightbox modules. Body Image blocks join the gallery when Document **Organize in lightbox** (or per-block settings) is on; captions sync into the overlay via the gallery script.
 
 Filters: `forwp_smart_link_supported_blocks`, `forwp_smart_link_has_inner_links`, `forwp_smart_link_use_host_mode`, `forwp_smart_link_cover_media_url`, `forwp_smart_link_cover_featured_post_id`, `forwp_smart_link_featured_image_lightbox_markup`.
 
@@ -171,7 +183,11 @@ Source and issues: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smar
 
 == Changelog ==
 
-== Changelog ==
+= 1.4.0 =
+* **Smart Image Gallery** Document sidebar: stats plus **Enlarge for all** and **Organize in lightbox** for body Image blocks.
+* Page lightbox gallery includes body Image blocks when Organize is on; more reliable open for foreign/copied attachment URLs.
+* Lightbox shows the Image block caption under the enlarged photo when a caption is set.
+* Fix: core lightbox actions no longer crash when the gallery script extends `showLightbox` / `setButtonStyles`.
 
 = 1.3.0 =
 * Fix: **Featured Image** Enlarge on click opens the core lightbox on single post templates (image click and expand button).
@@ -212,6 +228,9 @@ Source and issues: [4wp-smart-link on GitHub](https://github.com/4wpdev/4wp-smar
 * Front-end styles for clear keyboard focus on the link wrapper.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Smart Image Gallery in the Document sidebar (Enlarge for all / Organize in lightbox), captions in the lightbox, and more reliable page gallery opens.
 
 = 1.3.0 =
 Fixes Featured Image Enlarge on click on single templates so the lightbox opens when you click the image or expand control.

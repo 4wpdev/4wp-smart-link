@@ -57,6 +57,7 @@ import {
 	usesSmartLinkCardNavigation,
 } from './smart-link-destination';
 
+import './document-lightbox-panel';
 const SUPPORTED_BLOCKS = [
 	'core/cover',
 	'core/group',

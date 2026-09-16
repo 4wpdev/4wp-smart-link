@@ -37,6 +37,51 @@
 	margin: 0 0 12px;
 }
 
+.forwp-smart-image-gallery-panel {
+	.forwp-smart-image-gallery__stats {
+		display: grid;
+		gap: 4px 12px;
+		margin: 0 0 14px;
+		padding: 8px 10px;
+		border: 1px solid #e0e0e0;
+		border-radius: 2px;
+		background: #fafafa;
+	}
+
+	.forwp-smart-image-gallery__stat {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 8px;
+		font-size: 11px;
+		line-height: 1.35;
+	}
+
+	.forwp-smart-image-gallery__stat-label {
+		color: #757575;
+	}
+
+	.forwp-smart-image-gallery__stat-value {
+		font-variant-numeric: tabular-nums;
+		font-weight: 600;
+		color: #1e1e1e;
+	}
+
+	.forwp-smart-image-gallery__toggles {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.forwp-smart-image-gallery__toggles .components-base-control {
+		margin-bottom: 0;
+	}
+
+	.forwp-smart-image-gallery__toggles .components-base-control__help {
+		display: none;
+	}
+}
+
 /* Cover: Enlarge on click — editor canvas matches front-end trigger placement. */
 .editor-styles-wrapper .wp-block-cover.forwp-smart-link-cover-has-lightbox,
 .block-editor-block-list__layout .wp-block-cover.forwp-smart-link-cover-has-lightbox {

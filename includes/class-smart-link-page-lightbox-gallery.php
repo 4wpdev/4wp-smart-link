@@ -170,32 +170,70 @@ final class Smart_Link_Page_Lightbox_Gallery {
 			return $block_content;
 		}
 
-		if ( ! preg_match( '/\bdata-wp-key="([^"]+)"/', $block_content, $matches ) ) {
-			return $block_content;
-		}
-
-		$image_key  = $matches[1];
-		$gallery_id = self::get_page_gallery_id();
-		$order      = self::next_order();
-
-		wp_interactivity_state(
-			'core/image',
-			array(
-				'metadata' => array(
-					$image_key => array(
-						'galleryId' => $gallery_id,
-						'order'     => $order,
-					),
-				),
-			)
-		);
-
+		// Always load gallery extension (showLightbox imageRef fix) when lightbox markup is present.
 		Bootstrap::enqueue_cover_lightbox();
 
 		if ( function_exists( 'block_core_image_print_lightbox_overlay' ) ) {
 			add_action( 'wp_footer', 'block_core_image_print_lightbox_overlay', 5 );
 		}
 
-		return self::wrap_gallery_context( $block_content );
+		if ( ! Smart_Link_Body_Image_Gallery::is_page_gallery_enabled() ) {
+			return $block_content;
+		}
+
+		if ( ! preg_match( '/\bdata-wp-key="([^"]+)"/', $block_content, $matches ) ) {
+			return $block_content;
+		}
+
+		$image_key = $matches[1];
+
+		/*
+		 * Core sets uploadedSrc via wp_get_attachment_url( id ). When the Image
+		 * block keeps a foreign attachment id (copied content) that URL is false
+		 * and showLightbox() never opens. Prefer the rendered <img src>.
+		 */
+		$img_src = '';
+		if ( preg_match( '/<img\b[^>]*\bsrc=(["\'])([^"\']+)\1/i', $block_content, $src_match ) ) {
+			$img_src = esc_url_raw( $src_match[2] );
+		}
+
+		$caption = '';
+		if ( preg_match( '/<figcaption\b[^>]*>(.*?)<\/figcaption>/is', $block_content, $cap_match ) ) {
+			$caption = trim( wp_strip_all_tags( $cap_match[1] ) );
+		}
+
+		$gallery_id = self::get_page_gallery_id();
+		$order      = self::next_order();
+
+		$meta_patch = array(
+			'galleryId' => $gallery_id,
+			'order'     => $order,
+		);
+
+		if ( '' !== $img_src ) {
+			$meta_patch['uploadedSrc'] = $img_src;
+		}
+
+		if ( '' !== $caption ) {
+			$meta_patch['caption'] = $caption;
+		}
+
+		wp_interactivity_state(
+			'core/image',
+			array(
+				'metadata' => array(
+					$image_key => $meta_patch,
+				),
+			)
+		);
+
+		/*
+		 * Do not wrap in data-wp-interactive="core/gallery".
+		 * That parent (without a gallery view module in the tree) can leave
+		 * core/image directives unhydrated — Enlarge click then no-ops because
+		 * imageRef was never set. galleryId on metadata is enough for prev/next
+		 * once showLightbox sets selectedGalleryId from metadata.
+		 */
+		return $block_content;
 	}
 }

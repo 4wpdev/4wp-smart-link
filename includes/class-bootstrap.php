@@ -40,6 +40,7 @@ final class Bootstrap {
 
 		Block_Attributes::register();
 		Block_Link::register();
+		Smart_Link_Body_Image_Gallery::register();
 		Smart_Link_Page_Lightbox_Gallery::register();
 	}
 
@@ -124,11 +125,12 @@ final class Bootstrap {
 		}
 
 		// Load after core image styles so Cover lightbox trigger stays visible (opacity) and pinned (top/right).
+		$frontend_css = FORWP_SMART_LINK_PATH . 'assets/forwp-smart-link-frontend.css';
 		wp_enqueue_style(
 			'forwp-smart-link-frontend',
 			FORWP_SMART_LINK_URL . 'assets/forwp-smart-link-frontend.css',
 			array( 'wp-block-image' ),
-			FORWP_SMART_LINK_VERSION
+			is_readable( $frontend_css ) ? (string) filemtime( $frontend_css ) : FORWP_SMART_LINK_VERSION
 		);
 
 		if ( ! function_exists( 'wp_register_script_module' ) ) {
@@ -145,7 +147,7 @@ final class Bootstrap {
 				'forwp/smart-link-lightbox-gallery',
 				$gallery_url,
 				array( '@wordpress/block-library/image/view' ),
-				FORWP_SMART_LINK_VERSION
+				(string) filemtime( $gallery_path )
 			);
 			wp_enqueue_script_module( 'forwp/smart-link-lightbox-gallery' );
 		}

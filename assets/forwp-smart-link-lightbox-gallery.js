@@ -128,13 +128,27 @@ function ensureButtonRef( imageId ) {
 }
 
 /**
+ * @param {Record<string, unknown>} meta Image metadata.
+ * @return {string}
+ */
+function srcFromMetadata( meta ) {
+	if ( typeof meta.uploadedSrc === 'string' && meta.uploadedSrc ) {
+		return meta.uploadedSrc;
+	}
+	if ( typeof meta.currentSrc === 'string' && meta.currentSrc ) {
+		return meta.currentSrc;
+	}
+	return '';
+}
+
+/**
  * @param {Record<string, unknown>} meta Image metadata entry.
  * @return {HTMLImageElement|null}
  */
 function probeImageFromMetadata( meta ) {
-	const src = meta?.uploadedSrc;
+	const src = srcFromMetadata( meta );
 
-	if ( typeof src !== 'string' || '' === src ) {
+	if ( ! src ) {
 		return null;
 	}
 
@@ -167,6 +181,9 @@ function ensureImageRef( imageId ) {
 	if ( domImg ) {
 		entry.imageRef = domImg;
 		entry.currentSrc = domImg.currentSrc || domImg.src;
+		if ( typeof entry.uploadedSrc !== 'string' || ! entry.uploadedSrc ) {
+			entry.uploadedSrc = entry.currentSrc;
+		}
 		return;
 	}
 
@@ -176,14 +193,6 @@ function ensureImageRef( imageId ) {
 		entry.imageRef = probe;
 		entry.currentSrc = srcFromMetadata( entry );
 	}
-}
-
-/**
- * @param {Record<string, unknown>} meta Image metadata.
- * @return {string}
- */
-function srcFromMetadata( meta ) {
-	return typeof meta.uploadedSrc === 'string' ? meta.uploadedSrc : '';
 }
 
 function ensureGalleryImageRefs() {
@@ -196,6 +205,79 @@ function ensureGalleryImageRefs() {
 			ensureImageRef( imageId );
 		}
 	}
+}
+
+/**
+ * @param {string} imageId Metadata key.
+ * @return {string}
+ */
+function captionFromDom( imageId ) {
+	const safeId = escapeImageId( imageId );
+	const figure = document.querySelector(
+		`[data-wp-interactive="core/image"][data-wp-key="${ safeId }"]`
+	);
+
+	if ( ! figure ) {
+		return '';
+	}
+
+	const caption = figure.querySelector( 'figcaption' );
+
+	return caption?.textContent?.trim() || '';
+}
+
+/**
+ * @param {string} imageId Metadata key.
+ */
+function ensureCaption( imageId ) {
+	if ( ! imageId || ! state?.metadata?.[ imageId ] ) {
+		return;
+	}
+
+	const entry = state.metadata[ imageId ];
+
+	if ( typeof entry.caption === 'string' && entry.caption ) {
+		return;
+	}
+
+	const fromDom = captionFromDom( imageId );
+
+	if ( fromDom ) {
+		entry.caption = fromDom;
+	}
+}
+
+/**
+ * Core overlay figures are Preact-managed and CSS hides
+ * `.wp-lightbox-overlay .wp-block-image figcaption { display: none }`.
+ * Keep our caption on body, outside that tree.
+ *
+ * @return {HTMLElement}
+ */
+function getLightboxCaptionHost() {
+	let el = document.getElementById( 'forwp-smart-link-lightbox-caption' );
+
+	if ( ! el ) {
+		el = document.createElement( 'p' );
+		el.id = 'forwp-smart-link-lightbox-caption';
+		el.className = 'forwp-smart-link-lightbox-caption';
+		el.hidden = true;
+		document.body.appendChild( el );
+	}
+
+	return el;
+}
+
+function syncLightboxCaption() {
+	const el = getLightboxCaptionHost();
+	const caption =
+		( state.overlayEnabled &&
+			state.selectedImageId &&
+			state.metadata?.[ state.selectedImageId ]?.caption ) ||
+		'';
+
+	el.textContent = caption;
+	el.hidden = ! caption;
 }
 
 /**
@@ -298,7 +380,7 @@ function isCoverLightboxImage( img ) {
 	);
 }
 
-function runSetOverlayStyles( originalSetOverlayStyles ) {
+function runSetOverlayStyles() {
 	if ( ! state?.overlayEnabled ) {
 		return;
 	}
@@ -321,55 +403,179 @@ function runSetOverlayStyles( originalSetOverlayStyles ) {
 		}
 	}
 
-	if ( ! meta.imageRef ) {
-		applyCenteredOverlayStyles( meta );
-		return;
-	}
-
-	if ( isCoverLightboxSlide( meta ) ) {
-		applyCenteredOverlayStyles( meta );
-		return;
-	}
-
-	try {
-		originalSetOverlayStyles.call( this );
-	} catch ( error ) {
-		applyCenteredOverlayStyles( meta );
-	}
+	/*
+	 * Always compute styles here — do not call core setOverlayStyles through the
+	 * store proxy (nested call loses Interactivity scope).
+	 */
+	applyCenteredOverlayStyles( meta );
 }
 
 if ( callbacks?.setOverlayStyles && state ) {
-	const originalSetOverlayStyles = callbacks.setOverlayStyles;
-
 	callbacks.setOverlayStyles = function forwpSetOverlayStyles() {
-		runSetOverlayStyles( originalSetOverlayStyles );
+		runSetOverlayStyles();
 	};
 }
 
 /*
- * Cover: skip core setButtonStyles (wrong figure parent). Register imageRef only;
- * trigger position/visibility is CSS-only in forwp-smart-link-frontend.css.
- * Featured Image uses core-compatible markup, so keep core setButtonStyles.
+ * Do not call core showLightbox() from a wrapper — nested action proxies can
+ * clear the Interactivity scope stack (getContext → reading 'context' of undefined).
+ * Reimplement open: fill imageRef from DOM, set selectedGalleryId from metadata.
  */
-if ( callbacks?.setButtonStyles && state ) {
-	const originalSetButtonStyles = callbacks.setButtonStyles;
+if ( actions?.showLightbox && state ) {
+	actions.showLightbox = function forwpShowLightbox() {
+		let imageId;
 
-	callbacks.setButtonStyles = function forwpSetButtonStyles() {
-		const { ref } = getElement();
-
-		if ( ! isCoverLightboxImage( ref ) ) {
-			originalSetButtonStyles.call( this );
+		try {
+			imageId = getContext()?.imageId;
+		} catch {
 			return;
 		}
-
-		const { imageId } = getContext();
 
 		if ( ! imageId || ! state.metadata?.[ imageId ] ) {
 			return;
 		}
 
-		state.metadata[ imageId ].imageRef = ref;
-		state.metadata[ imageId ].currentSrc = ref.currentSrc || ref.src;
+		ensureImageRef( imageId );
+		ensureButtonRef( imageId );
+		ensureCaption( imageId );
+
+		const meta = state.metadata[ imageId ];
+
+		if ( ! meta.imageRef ) {
+			const domImg = findImageElementForId( imageId );
+			if ( domImg ) {
+				meta.imageRef = domImg;
+				meta.currentSrc = domImg.currentSrc || domImg.src;
+			}
+		}
+
+		if ( ! meta.imageRef ) {
+			const probe = probeImageFromMetadata( meta );
+			if ( probe ) {
+				meta.imageRef = probe;
+				meta.currentSrc = srcFromMetadata( meta );
+			}
+		}
+
+		if ( ! meta.imageRef ) {
+			return;
+		}
+
+		if ( typeof meta.uploadedSrc !== 'string' || ! meta.uploadedSrc ) {
+			meta.uploadedSrc =
+				meta.currentSrc ||
+				meta.imageRef.currentSrc ||
+				meta.imageRef.src;
+		}
+
+		state.scrollTopReset = document.documentElement.scrollTop;
+		state.scrollLeftReset = document.documentElement.scrollLeft;
+		state.selectedImageId = imageId;
+		state.selectedGalleryId = meta.galleryId || null;
+		state.overlayEnabled = true;
+
+		try {
+			callbacks.setOverlayStyles();
+		} catch {
+			applyCenteredOverlayStyles( meta );
+		}
+
+		syncLightboxCaption();
+		requestAnimationFrame( syncLightboxCaption );
+	};
+}
+
+/*
+ * Never call core callbacks/actions via the store proxy from inside a wrapper —
+ * nested invocation clears the Interactivity scope (getElement/getContext crash).
+ * Register imageRef (+ button position for non-Cover) here.
+ */
+if ( callbacks?.setButtonStyles && state ) {
+	callbacks.setButtonStyles = function forwpSetButtonStyles() {
+		let ref;
+		let imageId;
+
+		try {
+			ref = getElement()?.ref;
+			imageId = getContext()?.imageId;
+		} catch {
+			return;
+		}
+
+		if ( ! ref || ! imageId || ! state.metadata?.[ imageId ] ) {
+			return;
+		}
+
+		const entry = state.metadata[ imageId ];
+		entry.imageRef = ref;
+		entry.currentSrc = ref.currentSrc || ref.src;
+
+		if ( typeof entry.uploadedSrc !== 'string' || ! entry.uploadedSrc ) {
+			entry.uploadedSrc = entry.currentSrc;
+		}
+
+		/* Cover: trigger position is CSS-only. */
+		if ( isCoverLightboxImage( ref ) ) {
+			return;
+		}
+
+		const {
+			naturalWidth,
+			naturalHeight,
+			offsetWidth,
+			offsetHeight,
+		} = ref;
+
+		if ( naturalWidth === 0 || naturalHeight === 0 ) {
+			return;
+		}
+
+		const figure = ref.parentElement;
+
+		if ( ! figure ) {
+			return;
+		}
+
+		const figureWidth = figure.clientWidth;
+		let figureHeight = figure.clientHeight;
+		const caption = figure.querySelector( 'figcaption' );
+
+		if ( caption ) {
+			const captionComputedStyle = window.getComputedStyle( caption );
+
+			if ( ! [ 'absolute', 'fixed' ].includes( captionComputedStyle.position ) ) {
+				figureHeight =
+					figureHeight -
+					caption.offsetHeight -
+					parseFloat( captionComputedStyle.marginTop ) -
+					parseFloat( captionComputedStyle.marginBottom );
+			}
+		}
+
+		const buttonOffsetTop = figureHeight - offsetHeight;
+		const buttonOffsetRight = figureWidth - offsetWidth;
+		let buttonTop = buttonOffsetTop + 16;
+		let buttonRight = buttonOffsetRight + 16;
+
+		if ( entry.scaleAttr === 'contain' ) {
+			const naturalRatio = naturalWidth / naturalHeight;
+			const offsetRatio = offsetWidth / offsetHeight;
+
+			if ( naturalRatio >= offsetRatio ) {
+				const referenceHeight = offsetWidth / naturalRatio;
+				buttonTop =
+					( offsetHeight - referenceHeight ) / 2 + buttonOffsetTop + 16;
+				buttonRight = buttonOffsetRight + 16;
+			} else {
+				const referenceWidth = offsetHeight * naturalRatio;
+				buttonTop = buttonOffsetTop + 16;
+				buttonRight =
+					( offsetWidth - referenceWidth ) / 2 + buttonOffsetRight + 16;
+			}
+		}
+
+		entry.buttonTop = buttonTop;
+		entry.buttonRight = buttonRight;
 	};
 }
 
@@ -384,6 +590,7 @@ if ( actions?.hideLightbox && state ) {
 		}
 
 		state.overlayEnabled = false;
+		syncLightboxCaption();
 
 		setTimeout( function () {
 			ensureButtonRef( state.selectedImageId );
@@ -400,36 +607,61 @@ if ( actions?.hideLightbox && state ) {
 
 			state.selectedImageId = null;
 			state.selectedGalleryId = null;
+			syncLightboxCaption();
 		}, 450 );
 	};
 }
 
 if ( actions?.handleScroll && state ) {
-	const originalHandleScroll = actions.handleScroll;
-
 	actions.handleScroll = function forwpHandleScroll() {
 		if ( ! state.overlayEnabled ) {
 			return;
 		}
 
-		originalHandleScroll.call( this );
+		window.scrollTo( state.scrollLeftReset, state.scrollTopReset );
 	};
 }
 
 if ( actions?.showNextImage && state ) {
-	const originalShowNextImage = actions.showNextImage;
-
 	actions.showNextImage = function forwpShowNextImage( event ) {
-		originalShowNextImage.call( this, event );
+		if ( event?.stopPropagation ) {
+			event.stopPropagation();
+		}
+
+		if ( ! state.galleryImages?.length ) {
+			return;
+		}
+
+		const nextIndex = state.hasNextImage
+			? state.selectedImageIndex + 1
+			: 0;
+		state.selectedImageId = state.galleryImages[ nextIndex ];
+		ensureImageRef( state.selectedImageId );
 		ensureButtonRef( state.selectedImageId );
+		ensureCaption( state.selectedImageId );
+		callbacks.setOverlayStyles();
+		syncLightboxCaption();
 	};
 }
 
 if ( actions?.showPreviousImage && state ) {
-	const originalShowPreviousImage = actions.showPreviousImage;
-
 	actions.showPreviousImage = function forwpShowPreviousImage( event ) {
-		originalShowPreviousImage.call( this, event );
+		if ( event?.stopPropagation ) {
+			event.stopPropagation();
+		}
+
+		if ( ! state.galleryImages?.length ) {
+			return;
+		}
+
+		const nextIndex = state.hasPreviousImage
+			? state.selectedImageIndex - 1
+			: state.galleryImages.length - 1;
+		state.selectedImageId = state.galleryImages[ nextIndex ];
+		ensureImageRef( state.selectedImageId );
 		ensureButtonRef( state.selectedImageId );
+		ensureCaption( state.selectedImageId );
+		callbacks.setOverlayStyles();
+		syncLightboxCaption();
 	};
 }
