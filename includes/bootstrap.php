@@ -13,6 +13,7 @@ require_once FORWP_SMART_LINK_PATH . 'includes/class-smart-link-page-lightbox-ga
 require_once FORWP_SMART_LINK_PATH . 'includes/class-smart-link-body-image-gallery.php';
 require_once FORWP_SMART_LINK_PATH . 'includes/class-smart-link-cover-lightbox.php';
 require_once FORWP_SMART_LINK_PATH . 'includes/class-smart-link-featured-image-lightbox.php';
+require_once FORWP_SMART_LINK_PATH . 'includes/class-smart-link-media-lightbox.php';
 require_once FORWP_SMART_LINK_PATH . 'includes/class-block-attributes.php';
 require_once FORWP_SMART_LINK_PATH . 'includes/class-block-inner-links.php';
 require_once FORWP_SMART_LINK_PATH . 'includes/class-block-link.php';

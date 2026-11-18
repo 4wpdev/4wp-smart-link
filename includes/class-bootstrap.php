@@ -42,6 +42,7 @@ final class Bootstrap {
 		Block_Link::register();
 		Smart_Link_Body_Image_Gallery::register();
 		Smart_Link_Page_Lightbox_Gallery::register();
+		Smart_Link_Media_Lightbox::register();
 	}
 
 	/**

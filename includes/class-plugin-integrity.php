@@ -30,6 +30,7 @@ final class Plugin_Integrity {
 			'includes/class-smart-link-body-image-gallery.php',
 			'includes/class-smart-link-cover-lightbox.php',
 			'includes/class-smart-link-featured-image-lightbox.php',
+			'includes/class-smart-link-media-lightbox.php',
 			'includes/class-block-attributes.php',
 			'includes/class-block-inner-links.php',
 			'includes/class-block-link.php',
@@ -38,6 +39,8 @@ final class Plugin_Integrity {
 			'build/editor/index.js',
 			'assets/forwp-smart-link-frontend.css',
 			'assets/forwp-smart-link-lightbox-gallery.js',
+			'assets/forwp-smart-link-media-lightbox.js',
+			'assets/forwp-smart-link-media-lightbox.css',
 		);
 	}
 
